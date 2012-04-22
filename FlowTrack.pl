@@ -15,8 +15,10 @@ use Net::Flow qw(decode) ;
 use Data::Dumper;
 use Net::IP;
 use POE;
+use POE::Wheel::Run;
 use POE::Component::Server::HTTP;
-use Flowtrack;
+use FlowTrack;
+use FlowTrackWeb;
 use HTTP::Status;
 use autodie;
 
@@ -34,12 +36,12 @@ main();
 sub main
 {
     POE::Session->create (
-	inline_states => {
-	    _start => \&server_start,
-	    get_datagram => \&server_read,
-	    store_data => \&store_data,
-	 }
-    );
+			  inline_states => {
+					    _start => \&server_start,
+					    get_datagram => \&server_read,
+					    store_data => \&store_data,
+					   }
+			 );
     POE::Kernel->run();
     exit 0;
 }
@@ -56,6 +58,10 @@ sub server_start
 	Proto => 'udp',
 	LocalPort => $PORT
     );
+
+    my $child = POE::Wheel::Run->new  (
+				       Program => \&FlowTrackWeb::ServerStart,
+				      );
 
 
     # Send a delayed message to store data
