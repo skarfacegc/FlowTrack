@@ -19,7 +19,6 @@ sub ServerStart
 	ContentHandler => { '/' => \&homepage },
 	Headers => { Server => 'My Server' },
 	);
-
     POE::Kernel->run();
 
 }
