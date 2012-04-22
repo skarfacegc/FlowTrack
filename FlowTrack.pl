@@ -1,11 +1,23 @@
 #!/usr/bin/perl
-use strict ;
+#
+# Copyright 2012 Andrew Williams <andrew@manor.org>
+#
+# This file contains most of the top level interaction code.  For the actual processing and work
+# see FlowTrack.pm
+#
+# For Documentation & License see the README
+#
+#
+use strict;
 use warnings;
 use IO::Socket::INET;
 use Net::Flow qw(decode) ;
 use Data::Dumper;
 use Net::IP;
 use POE;
+use POE::Component::Server::HTTP;
+use Flowtrack;
+use HTTP::Status;
 use autodie;
 
 # Some configuration
@@ -14,6 +26,10 @@ my $DATAGRAM_LEN = 1548;
 my $PURGE_INTERVAL = 15;
 
 
+
+#
+# Setup the POE session(s) and start them
+#
 main();
 sub main
 {
@@ -140,15 +156,3 @@ sub decode_netflow
 }
 
 
-#
-# Make a Net::IP object
-#
-sub getIP
-{
-    my $raw_ip = shift();
-    my $ip;
-
-    $ip = new Net::IP(inet_ntoa($raw_ip)) || die "Couldn't create net object";
-
-    return $ip;
-}
