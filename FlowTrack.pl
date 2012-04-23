@@ -7,8 +7,9 @@
 #
 # For Documentation & License see the README
 #
-#
-# Test
+# Moved to GIT
+
+
 use strict;
 use warnings;
 use IO::Socket::INET;
