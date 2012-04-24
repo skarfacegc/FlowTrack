@@ -6,6 +6,10 @@ Goal is to make this easy to install and use.  (trying to minimize any apache/da
 
 
 TODO:
-Database creation
-perf testing
-storage (may look into forking the storage processor, depends on perf)
+* Database creation
+* Data Storage
+* Basic Web Interaction
+* Graphing
+* SNMP
+* Web Cleanup
+* perf testing
