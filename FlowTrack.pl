@@ -33,9 +33,8 @@ my $PURGE_INTERVAL = 15;
 #
 main();
 sub main
-{
-    POE::Session->create (
-			  inline_states => {
+  {
+    POE::Session->create (inline_states => {
 					    _start => \&server_start,
 					    get_datagram => \&server_read,
 					    store_data => \&store_data,
@@ -43,7 +42,7 @@ sub main
 			 );
     POE::Kernel->run();
     exit 0;
-}
+  }
 
 
 #
@@ -51,12 +50,12 @@ sub main
 # Evcentually will fork off the webserver
 #
 sub server_start
-{
+  {
     my $kernel = $_[KERNEL];
     my $socket = IO::Socket::INET->new(
-	Proto => 'udp',
-	LocalPort => $PORT
-    );
+				       Proto => 'udp',
+				       LocalPort => $PORT
+				      );
 
     my $child = POE::Wheel::Run->new  (
 				       Program => \&FlowTrackWeb::ServerStart,
@@ -68,7 +67,7 @@ sub server_start
 
     # Start off the select read.  use the get_datagram message
     $kernel->select_read($socket, "get_datagram");
-}
+  }
 
 
 #
@@ -77,7 +76,7 @@ sub server_start
 # It's own delay.  (much like alarm)
 #
 sub store_data
-{
+  {
     my $kernel = $_[KERNEL];
     my $flow_data = $_[HEAP]->{'flows'};
 
@@ -88,7 +87,7 @@ sub store_data
 
     # Restart the timer
     $kernel->delay(store_data => $PURGE_INTERVAL);
-}
+  }
 
 
 
@@ -97,7 +96,7 @@ sub store_data
 # get_datagram event handler
 #
 sub server_read
-{
+  {
     my ($kernel, $socket) = @_[KERNEL, ARG0];
     my $packet = undef;
     my $TemplateArrayRef = undef;
@@ -112,22 +111,22 @@ sub server_read
     # Put the decoded flow onto the HEAP for later storage (via store_data)
     push( @{$_[HEAP]->{'flows'}}, @$decoded_packet);
 
-}
+  }
 
 #
 # Actually do the packet decode
 #
 sub decode_packet
-{
+  {
     my ($packet) = @_;
     my $TemplateArrayRef = undef;
     my ($HeaderHashRef, $FlowArrayRef, $ErrorsArrayRef) = ();
 
-     ( $HeaderHashRef, $TemplateArrayRef, $FlowArrayRef, $ErrorsArrayRef)
-	 = Net::Flow::decode(\$packet, $TemplateArrayRef ) ;
+    ( $HeaderHashRef, $TemplateArrayRef, $FlowArrayRef, $ErrorsArrayRef)
+      = Net::Flow::decode(\$packet, $TemplateArrayRef ) ;
 
     return decode_netflow($FlowArrayRef);
-}
+  }
 
 
 #
@@ -135,29 +134,28 @@ sub decode_packet
 # Since we can get multiple records we're returning a list here
 #
 sub decode_netflow
-{
+  {
     my ($flow_struct) = @_;
 
     my $ret_list = [];
 
-    foreach my $flow (@{$flow_struct})
-    {
-	my $tmp_struct = {};
+    foreach my $flow (@{$flow_struct}) {
+      my $tmp_struct = {};
 
-	# The indicies of the data in $flow is documented in the netflow library
-	# kind of a dumb way to do this, but it's not my module
-	$tmp_struct->{src_ip} = inet_ntoa($flow->{'8'});
-	$tmp_struct->{dst_ip} = inet_ntoa($flow->{'12'});
-	$tmp_struct->{src_prt} = hex(unpack("H*", $flow->{'7'}));
-	$tmp_struct->{dst_prt} = hex(unpack("H*", $flow->{'11'}));
-	$tmp_struct->{bytes} = hex(unpack("H*", $flow->{'1'}));
-	$tmp_struct->{packets} = hex(unpack("H*", $flow->{'2'}));
+      # The indicies of the data in $flow is documented in the netflow library
+      # kind of a dumb way to do this, but it's not my module
+      $tmp_struct->{src_ip} = inet_ntoa($flow->{'8'});
+      $tmp_struct->{dst_ip} = inet_ntoa($flow->{'12'});
+      $tmp_struct->{src_prt} = hex(unpack("H*", $flow->{'7'}));
+      $tmp_struct->{dst_prt} = hex(unpack("H*", $flow->{'11'}));
+      $tmp_struct->{bytes} = hex(unpack("H*", $flow->{'1'}));
+      $tmp_struct->{packets} = hex(unpack("H*", $flow->{'2'}));
 
-	push(@{$ret_list}, $tmp_struct);
+      push(@{$ret_list}, $tmp_struct);
 
     }
 
     return $ret_list
-}
+  }
 
 
