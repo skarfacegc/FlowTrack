@@ -6,6 +6,8 @@ Goal is to make this easy to install and use.  (trying to minimize any apache/da
 
 
 TODO:
+* Test Harness
+* Documentation
 * Database creation
 * Data Storage
 * Basic Web Interaction
