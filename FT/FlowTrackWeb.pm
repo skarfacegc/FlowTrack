@@ -1,4 +1,4 @@
-package FlowTrackWeb;
+package FT::FlowTrackWeb;
 
 use POE;
 use POE::Component::Server::HTTP;
