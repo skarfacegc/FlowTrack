@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 #
 # This isn't particularly pretty, but it just runs all of the tests in t/
@@ -16,5 +16,6 @@ my %args = (
 
 my $harness = TAP::Harness->new( \%args );
 
-my $aggregator = $harness->runtests(<t/*>);
+
+my $aggregator = $harness->runtests(<t/*.t>);
 

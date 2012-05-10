@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # Copyright 2012 Andrew Williams <andrew@manor.org>
 #
@@ -16,6 +16,7 @@ use Net::IP;
 use POE;
 use POE::Wheel::Run;
 use POE::Component::Server::HTTP;
+use Time::HiRes;
 use FT::FlowTrack;
 use FT::FlowTrackWeb;
 use HTTP::Status;
@@ -25,6 +26,7 @@ use autodie;
 my $PORT           = 2055;
 my $DATAGRAM_LEN   = 1548;
 my $PURGE_INTERVAL = 15;
+my $DBNAME = "FlowTrack.sqlite";
 
 #
 # Setup the POE session(s) and start them
@@ -33,6 +35,10 @@ main();
 
 sub main
 {
+    my ($new_db_name) = @ARGV;
+
+    $DBNAME = $new_db_name if(defined($new_db_name) && $new_db_name ne "");
+    
     POE::Session->create(
         inline_states => {
             _start       => \&server_start,
@@ -56,8 +62,19 @@ sub server_start
         LocalPort => $PORT
     );
 
-    my $child =
-      POE::Wheel::Run->new( Program => \&FT::FlowTrackWeb::ServerStart, );
+    # Setup the database
+    # TODO: Some of the init code should move ito
+    #       FT/FlowTrack.pm
+    # Quick and dirty for right now
+    my $ft = FT::FlowTrack->new("/tmp",1,$DBNAME);
+    my $dbh = $ft->_initDB();
+    $ft->_createTables();
+
+    $_[HEAP]->{FlowTrack} = $ft;
+
+# Not going to start the webserver right now.  Focus on flow collection    
+#    my $child =
+#      POE::Wheel::Run->new( Program => \&FT::FlowTrackWeb::ServerStart, );
 
     # Send a delayed message to store data
     $kernel->delay( store_data => $PURGE_INTERVAL );
@@ -75,8 +92,10 @@ sub store_data
 {
     my $kernel    = $_[KERNEL];
     my $flow_data = $_[HEAP]->{'flows'};
-
-    print Dumper($flow_data);
+    my $ft = $_[HEAP]->{FlowTrack};
+    
+    
+    $ft->storeFlow($flow_data) if(defined($flow_data));
 
     # We've processed the flows, clear the heap for the next batch
     delete $_[HEAP]->{'flows'};
@@ -109,6 +128,8 @@ sub server_read
 #
 # Actually do the packet decode
 #
+# TODO: Move packet/flow handling to a pm
+#
 sub decode_packet
 {
     my ($packet) = @_;
@@ -125,6 +146,8 @@ sub decode_packet
 # Make a usable datastructure out of the data from decode_packet
 # Since we can get multiple records we're returning a list here
 #
+# TODO: Move packet/flow handling to a pm
+#
 sub decode_netflow
 {
     my ($flow_struct) = @_;
@@ -137,10 +160,11 @@ sub decode_netflow
 
         # The indicies of the data in $flow is documented in the netflow library
         # kind of a dumb way to do this, but it's not my module
-        $tmp_struct->{src_ip}  = inet_ntoa( $flow->{'8'} );
-        $tmp_struct->{dst_ip}  = inet_ntoa( $flow->{'12'} );
-        $tmp_struct->{src_prt} = hex( unpack( "H*", $flow->{'7'} ) );
-        $tmp_struct->{dst_prt} = hex( unpack( "H*", $flow->{'11'} ) );
+        $tmp_struct->{fl_time} = Time::HiRes::time();
+        $tmp_struct->{src_ip}  = $flow->{'8'};
+        $tmp_struct->{dst_ip}  = $flow->{'12'};
+        $tmp_struct->{src_port} = hex( unpack( "H*", $flow->{'7'} ) );
+        $tmp_struct->{dst_port} = hex( unpack( "H*", $flow->{'11'} ) );
         $tmp_struct->{bytes}   = hex( unpack( "H*", $flow->{'1'} ) );
         $tmp_struct->{packets} = hex( unpack( "H*", $flow->{'2'} ) );
 
