@@ -1,6 +1,7 @@
 package FT::FlowTrack;
 
-use 5.010;
+use v5.10;
+
 use Carp;
 use strict;
 use warnings;
@@ -8,6 +9,11 @@ use autodie;
 use Log::Message::Simple qw[:STD :CARP];
 use DBI;
 use Data::Dumper;
+use FT::Schema;
+
+
+
+use vars '$AUTOLOAD';
 
 #
 # Constructor
@@ -54,6 +60,7 @@ sub storeFlow
     # TODO: turn this into an array. . . .
     my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
                   VALUES (?,?,?,?,?,?,?) };
+
 
     my $sth = $dbh->prepare($sql) or croak("COudln't preapre SQL: " . $DBI::errstr);
     
@@ -184,6 +191,29 @@ sub _tableExists
     return grep {/$table_name/}  @tables;
 }
 
+
+#
+# So we can passthrough calls to the Schema routines
+#
+sub AUTOLOAD
+{
+    # Need to shift off self.  Dont't think that FT::Schema needs it
+    # but I'm not sure.  Eithe way, we want it off of @_;
+    my $self = shift();
+
+    given($AUTOLOAD)
+    {
+        when (/get_tables/)
+        {
+            return FT::Schema::get_tables(@_);
+        }
+        
+        when(/get_table/)
+        {
+            return FT::Schema::get_table(@_);
+        }
+    }
+}
 1;
 __END__
 
