@@ -133,6 +133,7 @@ sub _initDB
         }
         else
         {
+        
             croak("_initDB failed: $dbfile" . $DBI::errstr);
         }
     }
@@ -151,28 +152,24 @@ sub _initDB
 sub _createTables
 {
     my ($self) = @_;
+    my $tables = [qw/raw_flow/];
 
-    if(!$self->_tableExists("raw_flow"))
+    foreach my $table (@$tables)
     {
-        my $dbh = $self->_initDB();
-        my $create = "CREATE TABLE raw_flow (".
-        "fl_time BIGINT NOT NULL,".
-        "src_ip INT,".
-        "dst_ip INT,".
-        "src_port INT,".
-        "dst_port INT,".
-        "bytes INT,".
-        "packets INT,".
-        "PRIMARY KEY (fl_time, src_ip, dst_ip))";
-        
-        my $sth = $dbh->prepare($create);
-        my $rv = $sth->execute();
-        
-        if(!defined($rv))
+        if(!$self->_tableExists($table))
         {
-            croak($DBI::errstr);
+            my $dbh = $self->_initDB();
+            my $sql = $self->get_create_sql($table);
+            
+            my $sth = $dbh->prepare($sql);
+            my $rv = $sth->execute();
+            
+            if(!defined($rv))
+            {
+                croak($DBI::errstr);
+            }
         }
-    }
+    }    
     
     return 1;
 }
@@ -212,6 +209,13 @@ sub AUTOLOAD
         {
             return FT::Schema::get_table(@_);
         }
+
+        when(/get_create_sql/)
+        {
+            return FT::Schema::get_create_sql(@_);
+        }
+
+        
     }
 }
 1;

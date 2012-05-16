@@ -1,9 +1,11 @@
 use strict;
 use warnings;
-use Test::More tests => 15;
+use autodie;
+use Test::More tests => 16;
 use Data::Dumper;
 use FT::Schema;
 
+use vars qw($DB_TEST_FILE);
 # Assumes you have flow tools in /opt/local/bin or /usr/bin
 
 
@@ -17,6 +19,7 @@ BEGIN
 test_main();
 sub test_main
 {
+    unlink("/tmp/$DB_TEST_FILE") if(-e "/tmp/$DB_TEST_FILE");
     object_tests();
     db_creation();
 }
@@ -53,7 +56,12 @@ sub object_tests
     # Do a basic schema structure test
     my $table_def = $ft_default->get_table("raw_flow");
     ok($table_def->[0]{name} eq "fl_time", "Schema Structure");
+
+
+    my $create_sql = $ft_default->get_create_sql("raw_flow");
+    ok($create_sql ~~ /CREATE.*fl_time.*PRIMARY\ KEY.*/, "Create statement generation");
 }
+
 
 
 #
@@ -68,7 +76,6 @@ sub db_creation
     # We'll use $dbh and $db_creat for several areas of testing
     #
 
-    #
     my $db_creat = FT::FlowTrack->new("/tmp", 1, $DB_TEST_FILE);
 
     my $dbh = $db_creat->_initDB();
@@ -95,7 +102,6 @@ sub db_creation
 END
 {
     #cleanup
-    unlink("/tmp/$DB_TEST_FILE");
 }
 
     

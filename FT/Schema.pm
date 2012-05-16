@@ -6,6 +6,9 @@
 #                  name => "my_field",
 #                  type => "string"
 #                  pk => 1,
+#
+#
+#                  #TODO: Add index support
 #                  indexes => ["myIndex1", "myIndex2"]
 #                 
 # }
@@ -16,6 +19,7 @@
 package FT::Schema;
 use strict;
 use warnings;
+use v5.10;
 use Data::Dumper;
 
 use vars '$TABLES';
@@ -85,6 +89,9 @@ sub get_tables
 }
 
 
+#
+# Get the definition for a table
+#
 sub get_table
 {
     my ($table) = @_;
@@ -98,3 +105,37 @@ sub get_table
         return;
     }
 }
+
+
+#
+# This routine builds the create statement for the given table name
+# it uses the data structures setup above
+#
+sub get_create_sql
+{
+    my ($table_name) = @_;
+
+    my $sql;
+    my $primary_key;
+    my $fields;
+
+    my $table_def = get_table($table_name);
+
+    # If we don't have a vaild table definition, bail
+    return unless(defined($table_def));
+    
+    foreach my $field (@$table_def)
+    {
+        # build the field list
+        push(@$fields, $field->{'name'} . " " . $field->{'type'});
+        
+        # build the pk list
+        push(@$primary_key, $field->{'name'})  if(exists($field->{'pk'}) && $field->{'pk'} == 1);
+    }
+
+    $sql = "CREATE TABLE $table_name (" . join(',', @$fields) . ", PRIMARY KEY (" . join(',', @$primary_key) . "))";
+
+
+    return $sql;
+}
+
