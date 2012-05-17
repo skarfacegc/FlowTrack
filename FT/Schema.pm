@@ -55,13 +55,13 @@ $TABLES->{"raw_flow"}=
 
  # Source Port
  {
-  name => "src_prt",
+  name => "src_port",
   type => "INT"
  },
 
  # Destination Port
  {
-  name => "dst_prt",
+  name => "dst_port",
   type => "INT"
  },
 
@@ -105,6 +105,25 @@ sub get_table
         return;
     }
 }
+
+
+# Returns the list of fields
+sub get_field_list
+{
+    my ($table) = @_;
+
+    my $field_list;
+
+    my $table_def = get_table($table);
+    
+    foreach my $field (@$field_list)
+    {
+        push(@$field_list, $field->{'name'});
+    }
+
+    return $field_list;
+}
+
 
 
 #
