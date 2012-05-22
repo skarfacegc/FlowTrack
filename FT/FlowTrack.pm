@@ -1,6 +1,7 @@
 package FT::FlowTrack;
 
-use 5.010;
+use v5.10;
+
 use Carp;
 use strict;
 use warnings;
@@ -8,6 +9,13 @@ use autodie;
 use Log::Message::Simple qw[:STD :CARP];
 use DBI;
 use Data::Dumper;
+use FT::Schema;
+
+
+
+use vars '$AUTOLOAD';
+
+my $VERBOSE = 1;
 
 #
 # Constructor
@@ -38,13 +46,16 @@ sub new
 
 
 # TODO: THis is a bit of a mess, should clean it up.
-# SHoudl turn the insert stuff into a predefined array that is used for both
-# creatoin and insertion.  Avoid using the column names in code like this
 sub storeFlow
 {
     my ($self, $flows) = @_;
     my $insert_struct;
-    
+
+    my $insert_queue;
+    my $batch_counter = 0;
+    my $total_saved = 0;
+
+
     # Don't do anything if we don't have flows
     return unless(defined($flows));
     
@@ -55,42 +66,55 @@ sub storeFlow
     my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
                   VALUES (?,?,?,?,?,?,?) };
 
-    my $sth = $dbh->prepare($sql) or croak("COudln't preapre SQL: " . $DBI::errstr);
-    
 
+    my $sth = $dbh->prepare($sql) or croak("Coudln't preapre SQL: " . $DBI::errstr);
+    
     foreach my $flow_rec (@{$flows})
     {
         # creat a datastructure that looks like this
-        # $insert_struct->{field_name1} = [ array of all values for field_name1 ]
-        # $insert_struct->{field_name1} = [ array of all values for field_name2 ]
+        # $insert_struct->[batch]{field_name1} = [ array of all values for field_name1 ]
+        # $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
         #
         # To be used by execute array
         map
         {
-            push(@{$insert_struct->{$_}}, $flow_rec->{$_});
+            push(@{$insert_struct->[$batch_counter]{$_}}, $flow_rec->{$_});
         }
-        keys %$flow_rec
+        keys %$flow_rec;
+        
+        $insert_queue++;
+        if($insert_queue > 100)
+        {
+            $batch_counter++;
+            $insert_queue = 0;
+        }
     }
-
-
-    my @keys = keys %$insert_struct;
-    my @values = values %$insert_struct;
-    my @tuple_status;
     
-    $sth->execute_array({
-                         ArrayTupleStatus => \@tuple_status
-                        }, 
-                        $insert_struct->{fl_time},
-                        $insert_struct->{src_ip},
-                        $insert_struct->{dst_ip},
-                        $insert_struct->{src_port},
-                        $insert_struct->{dst_port},
-                        $insert_struct->{bytes},
-                        $insert_struct->{packets}) or croak(print Dumper(\@tuple_status) . $DBI::errstr);
+    foreach my $batch (@$insert_struct)
+    {       
+        my @tuple_status;
+        my $rows_saved = $sth->execute_array({
+                                              ArrayTupleStatus => \@tuple_status
+                                             }, 
+                                             $batch->{fl_time},
+                                             $batch->{src_ip},
+                                             $batch->{dst_ip},
+                                             $batch->{src_port},
+                                             $batch->{dst_port},
+                                             $batch->{bytes},
+                                             $batch->{packets}) or
+                                             croak(print Dumper(\@tuple_status) . "\n DBI: " .$DBI::errstr);
+
+        $total_saved += $rows_saved;
+        
+        warn "\tBatch: " . $rows_saved . "\n" if($VERBOSE);
+    }
     
-    print("Saved " . scalar @{ $flows } . " flows");
+    warn "Total Saved: " . $total_saved . "\n" if($VERBOSE);
+
     
 }
+
 
 #
 # gets a db handle
@@ -126,6 +150,7 @@ sub _initDB
         }
         else
         {
+        
             croak("_initDB failed: $dbfile" . $DBI::errstr);
         }
     }
@@ -144,28 +169,29 @@ sub _initDB
 sub _createTables
 {
     my ($self) = @_;
+    my $tables = [qw/raw_flow/];
 
-    if(!$self->_tableExists("raw_flow"))
+    foreach my $table (@$tables)
     {
-        my $dbh = $self->_initDB();
-        my $create = "CREATE TABLE raw_flow (".
-        "fl_time BIGINT NOT NULL,".
-        "src_ip INT,".
-        "dst_ip INT,".
-        "src_port INT,".
-        "dst_port INT,".
-        "bytes INT,".
-        "packets INT,".
-        "PRIMARY KEY (fl_time, src_ip, dst_ip))";
-        
-        my $sth = $dbh->prepare($create);
-        my $rv = $sth->execute();
-        
-        if(!defined($rv))
+        if(!$self->_tableExists($table))
         {
-            croak($DBI::errstr);
+            my $dbh = $self->_initDB();
+            my $sql = $self->get_create_sql($table);
+            
+            if(!defined($sql) || $sql eq "")
+            {
+                croak("Couldn't create SQL statement for $table");
+            }
+
+            my $sth = $dbh->prepare($sql);
+            my $rv = $sth->execute();
+            
+            if(!defined($rv))
+            {
+                croak($DBI::errstr);
+            }
         }
-    }
+    }    
     
     return 1;
 }
@@ -184,6 +210,38 @@ sub _tableExists
     return grep {/$table_name/}  @tables;
 }
 
+
+#
+# So we can passthrough calls to the Schema routines
+#
+# Mainly to get the schema handling code out of this package.  
+#
+sub AUTOLOAD
+{
+    # Need to shift off self.  Dont't think that FT::Schema is going to need it
+    # but I'm not sure.  Either way, we want it off of @_;
+    my $self = shift();
+
+    given($AUTOLOAD)
+    {
+        when (/get_tables/)
+        {
+            return FT::Schema::get_tables(@_);
+        }
+        
+        when(/get_table/)
+        {
+            return FT::Schema::get_table(@_);
+        }
+
+        when(/get_create_sql/)
+        {
+            return FT::Schema::get_create_sql(@_);
+        }
+
+        
+    }
+}
 1;
 __END__
 

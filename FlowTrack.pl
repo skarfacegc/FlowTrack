@@ -28,6 +28,8 @@ my $DATAGRAM_LEN   = 1548;
 my $PURGE_INTERVAL = 15;
 my $DBNAME = "FlowTrack.sqlite";
 
+my $VERBOSE = 1;
+
 #
 # Setup the POE session(s) and start them
 #
@@ -66,7 +68,7 @@ sub server_start
     # TODO: Some of the init code should move ito
     #       FT/FlowTrack.pm
     # Quick and dirty for right now
-    my $ft = FT::FlowTrack->new("/tmp",1,$DBNAME);
+    my $ft = FT::FlowTrack->new("./",1,$DBNAME);
     my $dbh = $ft->_initDB();
     $ft->_createTables();
 
@@ -93,8 +95,9 @@ sub store_data
     my $kernel    = $_[KERNEL];
     my $flow_data = $_[HEAP]->{'flows'};
     my $ft = $_[HEAP]->{FlowTrack};
+
     
-    
+    warn "Queued " . @{$flow_data} . "\n" if(defined($flow_data) && $VERBOSE);
     $ft->storeFlow($flow_data) if(defined($flow_data));
 
     # We've processed the flows, clear the heap for the next batch
