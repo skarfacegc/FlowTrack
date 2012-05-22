@@ -32,25 +32,27 @@ my $TABLES;
 #
 $TABLES->{"raw_flow"}= 
 [
+ # Key (auto inc)
+ {
+  name => "flow_id",
+  type => "INTEGER PRIMARY KEY",
+ },
  # Flow Time
  {
   name => "fl_time",
   type => "BIGINT NOT NULL",
-  pk => 1, 
  },
 
  # Source IP
  {
   name => "src_ip",
   type => "INT",
-  pk => 1,
  },
 
  # Destination IP
  {
   name => "dst_ip",
   type => "INT",
-  pk => 1
  },
 
  # Source Port
@@ -152,8 +154,16 @@ sub get_create_sql
         push(@$primary_key, $field->{'name'})  if(exists($field->{'pk'}) && $field->{'pk'} == 1);
     }
 
-    $sql = "CREATE TABLE $table_name (" . join(',', @$fields) . ", PRIMARY KEY (" . join(',', @$primary_key) . "))";
+    $sql = "CREATE TABLE $table_name (" . join(',', @$fields);
 
+    if(defined($primary_key))
+    {
+        $sql .=  ", PRIMARY KEY (" . join(',', @$primary_key) . "))";
+    }
+    else
+    {
+        $sql .= ")";
+    }
 
     return $sql;
 }
