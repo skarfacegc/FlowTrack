@@ -1,3 +1,15 @@
+Next Steps
+----------
+1. Cleanup the run script
+   - Dameonize itself
+   - pull more logic into packages
+1. Generate test to actually test collection
+2. Generate Summary data
+3. WebUI
+
+
+
+
 Start of a netflow and snmp monitoring tool
 
 Designed for use on a small/home network.  Testing against dd-wrt
@@ -19,13 +31,13 @@ I've been using flow-tools for testing.  Haven't figured out how to
 send a sustained flows per second to do actual performance
 measurement.  (short of looping small flow-gen batches)
 
----
 Installation
 ------------
 You'll need the following perl modules (cleanup branch 1.17.12):
 
 - POE
 - POE::Component::Server:HTTP (webserver currently commented out, but module is still used)
+- LWP::UserAgent (required by above, but not installed as part of the cpan install)
 - POE::Wheel::Run
 - Net::Flow
 - Net::IP
