@@ -55,11 +55,11 @@ sub object_tests
 
     # Do a basic schema structure test
     my $table_def = $ft_default->get_table("raw_flow");
-    ok($table_def->[0]{name} eq "fl_time", "Schema Structure");
+    ok($table_def->[0]{name} eq "flow_id", "Schema Structure");
 
 
     my $create_sql = $ft_default->get_create_sql("raw_flow");
-    ok($create_sql ~~ /CREATE.*fl_time.*PRIMARY\ KEY.*/, "Create statement generation");
+    ok($create_sql ~~ /CREATE.*fl_time.*/, "Create statement generation");
 }
 
 
