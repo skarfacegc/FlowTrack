@@ -106,13 +106,7 @@ sub storeFlow
                                              croak(print Dumper(\@tuple_status) . "\n DBI: " .$DBI::errstr);
 
         $total_saved += $rows_saved;
-        
-        warn "\tBatch: " . $rows_saved . "\n" if($VERBOSE);
     }
-    
-    warn "Total Saved: " . $total_saved . "\n" if($VERBOSE);
-
-    
 }
 
 

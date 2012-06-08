@@ -97,7 +97,6 @@ sub store_data
     my $ft = $_[HEAP]->{FlowTrack};
 
     
-    warn "Queued " . @{$flow_data} . "\n" if(defined($flow_data) && $VERBOSE);
     $ft->storeFlow($flow_data) if(defined($flow_data));
 
     # We've processed the flows, clear the heap for the next batch
