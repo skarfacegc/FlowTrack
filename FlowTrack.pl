@@ -25,7 +25,7 @@ use autodie;
 # Some configuration
 my $PORT           = 2055;
 my $DATAGRAM_LEN   = 1548;
-my $PURGE_INTERVAL = 15;
+my $PURGE_INTERVAL = 300;
 my $DBNAME = "FlowTrack.sqlite";
 
 my $VERBOSE = 1;
