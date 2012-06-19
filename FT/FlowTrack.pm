@@ -10,6 +10,7 @@ use Log::Message::Simple qw[:STD :CARP];
 use DBI;
 use Data::Dumper;
 use FT::Schema;
+use File::Path qw(make_path);
 
 
 
@@ -33,7 +34,7 @@ sub new
 
     # ensure we have some defaults
     $self->{dbname} ||= "FlowTrack.sqlite";
-    $self->{location} ||= "/tmp";
+    $self->{location} ||= "Data";
     $self->{debug}    ||= 0;
 
     # Setup space for connection pools and the database handle
@@ -132,6 +133,9 @@ sub _initDB
     }
     else
     {
+
+        $self->_checkDirs();
+        
         my $dbfile = $self->{location} . "/" . $db_name;
 
         my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbfile", "", "" );
@@ -149,6 +153,7 @@ sub _initDB
         }
     }
 }
+
 
 #
 # Creates the needed tables
@@ -204,6 +209,24 @@ sub _tableExists
     return grep {/$table_name/}  @tables;
 }
 
+
+
+# Check to make sure the data directory exists, if not, create it.
+sub _checkDirs
+{
+    my $self = shift();
+    my $err;
+
+    unless(-d $self->{location})
+    {
+        # make path handles error checking
+        make_path($self->{location}, {verbose=>1});
+    }
+
+    # Make sure the directory exists
+    croak($self->{location} . " strangely absent") unless(-d $self->{location});
+    
+}
 
 #
 # So we can passthrough calls to the Schema routines

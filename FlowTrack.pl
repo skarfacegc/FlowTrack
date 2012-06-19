@@ -68,7 +68,7 @@ sub server_start
     # TODO: Some of the init code should move ito
     #       FT/FlowTrack.pm
     # Quick and dirty for right now
-    my $ft = FT::FlowTrack->new("./",1,$DBNAME);
+    my $ft = FT::FlowTrack->new("./Data",1,$DBNAME);
     my $dbh = $ft->_initDB();
     $ft->_createTables();
 
