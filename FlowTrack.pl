@@ -25,6 +25,11 @@ use autodie;
 # Some configuration
 my $PORT           = 2055;
 my $DATAGRAM_LEN   = 1548;
+
+
+# This should be put into a library call somewhere.
+# Will need this value in a few places once
+# we start doing the RRDs
 my $PURGE_INTERVAL = 300;
 my $DBNAME = "FlowTrack.sqlite";
 
