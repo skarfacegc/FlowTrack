@@ -24,7 +24,7 @@ my $VERBOSE = 1;
 # Takes ("directory for db files",<debug>,"db file name")
 #
 # Sets defaults if needed
-#x
+#
 sub new
 {
     my $class = shift;
@@ -46,7 +46,13 @@ sub new
 }
 
 
-# TODO: THis is a bit of a mess, should clean it up.
+#
+# Handles storing flows to the database
+#
+# Takes an array of flow records (similar to how Net::Flow combines things)
+# But the array covers the entire time window, not just a single packet.  
+# Not doing anyting at the packet leve on this side.
+#
 sub storeFlow
 {
     my ($self, $flows) = @_;
@@ -65,13 +71,13 @@ sub storeFlow
 
     # TODO: turn this into an array. . . .
     my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
-                  VALUES (?,?,?,?,?,?,?) };
+                  VALUES (?,?,?,?,?,?,?) }; 
 
 
-    my $sth = $dbh->prepare($sql) or croak("Coudln't preapre SQL: " . $DBI::errstr);
-    
-    foreach my $flow_rec (@{$flows})
-    {
+      my $sth = $dbh->prepare($sql) or croak("Coudln't preapre SQL: " . $DBI::errstr);
+
+      foreach my $flow_rec (@{$flows})
+      {
         # creat a datastructure that looks like this
         # $insert_struct->[batch]{field_name1} = [ array of all values for field_name1 ]
         # $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
@@ -95,21 +101,65 @@ sub storeFlow
     {       
         my @tuple_status;
         my $rows_saved = $sth->execute_array({
-                                              ArrayTupleStatus => \@tuple_status
-                                             }, 
-                                             $batch->{fl_time},
-                                             $batch->{src_ip},
-                                             $batch->{dst_ip},
-                                             $batch->{src_port},
-                                             $batch->{dst_port},
-                                             $batch->{bytes},
-                                             $batch->{packets}) or
-                                             croak(print Dumper(\@tuple_status) . "\n DBI: " .$DBI::errstr);
+          ArrayTupleStatus => \@tuple_status
+          }, 
+          $batch->{fl_time},
+          $batch->{src_ip},
+          $batch->{dst_ip},
+          $batch->{src_port},
+          $batch->{dst_port},
+          $batch->{bytes},
+          $batch->{packets}) or
+        croak(print Dumper(\@tuple_status) . "\n DBI: " .$DBI::errstr);
 
         $total_saved += $rows_saved;
     }
+
+    warn localtime . "  - Saved $total_saved\n";
+
 }
 
+
+#
+# Gets flows for the last x minutes
+#
+# returns an array of flows for the last x minutes
+sub getFlowsForLast
+{
+    return;
+}
+
+
+#
+# Gets flows in the specified time range
+#
+# XXX TESTME
+sub getFlowsTimeRange
+{
+    my $self = shift();
+    my $dbh = $self->_initDB();
+    my $ret_list;
+
+
+    my($start_time, $end_time) = @_;
+
+    my $sql = "SELECT * FROM raw_flow WHERE fl_time BETWEEN ? AND ?";
+    my $sth = $dbh->prepare($sql);
+    $sth->execute($start_time, $end_time);
+    
+    while(my $ref = $sth->fetchrow_hashref)
+    {
+        push @$ret_list, $ref;
+    }
+
+    return $ret_list;
+
+}
+
+
+#
+# "Private" methods below.  Not stopping folks from calling these, but they're really not interesting
+#
 
 #
 # gets a db handle
@@ -148,7 +198,7 @@ sub _initDB
         }
         else
         {
-        
+
             croak("_initDB failed: $dbfile" . $DBI::errstr);
         }
     }
@@ -170,8 +220,7 @@ sub _createTables
     my ($self) = @_;
     my $tables = [qw/raw_flow/];
 
-    foreach my $table (@$tables)
-    {
+    foreach my $table (@$tables)   {
         if(!$self->_tableExists($table))
         {
             my $dbh = $self->_initDB();
@@ -220,7 +269,7 @@ sub _checkDirs
     unless(-d $self->{location})
     {
         # make path handles error checking
-        make_path($self->{location}, {verbose=>1});
+        make_path($self->{location});
     }
 
     # Make sure the directory exists
