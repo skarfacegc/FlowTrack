@@ -33,7 +33,7 @@ sub new
     ( $self->{location}, $self->{debug}, $self->{dbname} ) = @_;
 
     # ensure we have some defaults
-    $self->{dbname} ||= "FlowTrack.sqlite";
+    $self->{dbname}   ||= "FlowTrack.sqlite";
     $self->{location} ||= "Data";
     $self->{debug}    ||= 0;
 
