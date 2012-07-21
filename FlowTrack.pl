@@ -31,7 +31,7 @@ my $DATAGRAM_LEN   = 1548;
 # Will need this value in a few places once
 # we start doing the RRDs
 my $PURGE_INTERVAL = 300;
-my $DBNAME = "FlowTrack.sqlite";
+my $DBNAME         = "FlowTrack.sqlite";
 
 my $VERBOSE = 1;
 
@@ -167,13 +167,13 @@ sub decode_netflow
 
         # The indicies of the data in $flow is documented in the netflow library
         # kind of a dumb way to do this, but it's not my module
-        $tmp_struct->{fl_time} = Time::HiRes::time();
-        $tmp_struct->{src_ip}  = $flow->{'8'};
-        $tmp_struct->{dst_ip}  = $flow->{'12'};
+        $tmp_struct->{fl_time}  = Time::HiRes::time();
+        $tmp_struct->{src_ip}   = $flow->{'8'};
+        $tmp_struct->{dst_ip}   = $flow->{'12'};
         $tmp_struct->{src_port} = hex( unpack( "H*", $flow->{'7'} ) );
         $tmp_struct->{dst_port} = hex( unpack( "H*", $flow->{'11'} ) );
-        $tmp_struct->{bytes}   = hex( unpack( "H*", $flow->{'1'} ) );
-        $tmp_struct->{packets} = hex( unpack( "H*", $flow->{'2'} ) );
+        $tmp_struct->{bytes}    = hex( unpack( "H*", $flow->{'1'} ) );
+        $tmp_struct->{packets}  = hex( unpack( "H*", $flow->{'2'} ) );
 
         push( @{$ret_list}, $tmp_struct );
 
