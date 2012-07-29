@@ -30,13 +30,13 @@ my $DATAGRAM_LEN   = 1548;
 # This should be put into a library call somewhere.
 # Will need this value in a few places once
 # we start doing the RRDs
-my $PURGE_INTERVAL = 300;
+my $PURGE_INTERVAL = 30;
 my $DBNAME         = "FlowTrack.sqlite";
 
 my $VERBOSE = 1;
 
 # Define internal network
-my $INTERNAL_NETWORK = "192.168.1.0/24"
+my $INTERNAL_NETWORK = "192.168.1.0/24";
 
 #
 # Setup the POE session(s) and start them
