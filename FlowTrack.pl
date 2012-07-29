@@ -35,6 +35,9 @@ my $DBNAME         = "FlowTrack.sqlite";
 
 my $VERBOSE = 1;
 
+# Define internal network
+my $INTERNAL_NETWORK = "192.168.1.0/24"
+
 #
 # Setup the POE session(s) and start them
 #
@@ -73,7 +76,7 @@ sub server_start
     # TODO: Some of the init code should move ito
     #       FT/FlowTrack.pm
     # Quick and dirty for right now
-    my $ft = FT::FlowTrack->new("./Data",1,$DBNAME);
+    my $ft = FT::FlowTrack->new("./Data",1,$DBNAME, $INTERNAL_NETWORK);
     my $dbh = $ft->_initDB();
     $ft->_createTables();
 
@@ -114,6 +117,14 @@ sub store_data
 #
 # This is where we read and process the netflow packet
 # get_datagram event handler
+#
+# Top level packet processing call
+# 
+# server_read is called when POE select_read gets packets
+#    calls decode_packet to get the netflow data out of the packet
+#       decode_packet calls the actual Net::Flow code to decode the packet, and passes result to decode_netflow
+#           decode_netflow makes the actual datastructure and returns it.
+#       takes the return value and pushes it into the POE HEAP
 #
 sub server_read
 {

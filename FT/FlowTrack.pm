@@ -30,16 +30,18 @@ sub new
     my $class = shift;
     my $self  = {};
 
-    ( $self->{location}, $self->{debug}, $self->{dbname} ) = @_;
+    ( $self->{location}, $self->{debug}, $self->{dbname}, $self->{internal_network} ) = @_;
 
     # ensure we have some defaults
-    $self->{dbname}   ||= "FlowTrack.sqlite";
-    $self->{location} ||= "Data";
-    $self->{debug}    ||= 0;
+    $self->{dbname}           ||= "FlowTrack.sqlite";
+    $self->{location}         ||= "Data";
+    $self->{debug}            ||= 0;
+    $self->{internal_network} ||= "192.168.1.0/16";
 
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
     $self->{dbh}                = {};
+    $self->{internal_net_obj}   = {};
     
     bless( $self, $class );
     return $self;
@@ -61,6 +63,7 @@ sub storeFlow
     my $insert_queue;
     my $batch_counter = 0;
     my $total_saved = 0;
+    my $batch_size = 100;
 
 
     # Don't do anything if we don't have flows
@@ -90,7 +93,7 @@ sub storeFlow
         keys %$flow_rec;
         
         $insert_queue++;
-        if($insert_queue > 100)
+        if($insert_queue > $batch_size)
         {
             $batch_counter++;
             $insert_queue = 0;
@@ -101,16 +104,16 @@ sub storeFlow
     {       
         my @tuple_status;
         my $rows_saved = $sth->execute_array({
-          ArrayTupleStatus => \@tuple_status
-          }, 
-          $batch->{fl_time},
-          $batch->{src_ip},
-          $batch->{dst_ip},
-          $batch->{src_port},
-          $batch->{dst_port},
-          $batch->{bytes},
-          $batch->{packets}) or
-        croak(print Dumper(\@tuple_status) . "\n DBI: " .$DBI::errstr);
+           ArrayTupleStatus => \@tuple_status    
+           }, 
+           $batch->{fl_time},
+           $batch->{src_ip},
+           $batch->{dst_ip},
+           $batch->{src_port},
+           $batch->{dst_port},
+           $batch->{bytes},
+           $batch->{packets}) or
+        croak(print Dumper(\@tuple_status) . "\n trying to store flow in DB DBI: " .$DBI::errstr);
 
         $total_saved += $rows_saved;
     }
@@ -140,16 +143,15 @@ sub getFlowsTimeRange
     my $dbh = $self->_initDB();
     my $ret_list;
 
-
     my($start_time, $end_time) = @_;
 
-    my $sql = "SELECT * FROM raw_flow WHERE fl_time BETWEEN ? AND ?";
+    my $sql = "SELECT * FROM raw_flow WHERE fl_time >= ? AND fl_time <= ?";
     my $sth = $dbh->prepare($sql);
-    $sth->execute($start_time, $end_time);
+    $sth->execute($start_time, $end_time + 1);
     
     while(my $ref = $sth->fetchrow_hashref)
     {
-        push @$ret_list, $ref;
+         push @$ret_list, $ref;
     }
 
     return $ret_list;
@@ -276,6 +278,22 @@ sub _checkDirs
     croak($self->{location} . " strangely absent") unless(-d $self->{location});
     
 }
+
+#
+# returns the Net::IP Object for the internal network
+#
+sub _getInternalNetworkObj
+{
+    my $self = shift();
+
+    unless(exists($self->{internal_net_obj}) && defined($self->{internal_net_obj}))
+    {
+        $self->{internal_net_obj} = new Net::IP($self->{internal_network});
+    }
+
+    return $self->{internal_net_obj};
+}
+
 
 #
 # So we can passthrough calls to the Schema routines
