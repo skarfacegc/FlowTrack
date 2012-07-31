@@ -11,6 +11,8 @@ use DBI;
 use Data::Dumper;
 use FT::Schema;
 use File::Path qw(make_path);
+use Net::IP;
+use Socket; # For inet_ntoa
 
 
 
@@ -74,7 +76,7 @@ sub storeFlow
 
     # TODO: turn this into an array. . . .
     my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
-                  VALUES (?,?,?,?,?,?,?) }; 
+      VALUES (?,?,?,?,?,?,?) }; 
 
 
       my $sth = $dbh->prepare($sql) or croak("Coudln't preapre SQL: " . $DBI::errstr);
@@ -137,14 +139,23 @@ sub runReports
 # returns an array of flows for the last x minutes
 sub getFlowsForLast
 {
-    return;
+    my $self = shift();
+    my ($range) = @_;
+    my $now = time;
+
+    my $start_time;
+    my $end_time;
+
+    $start_time = $now - ($range * 60);
+    $end_time = $now;
+
+    return getFlowsTimeRange($start_time, $end_time);
 }
 
 
 #
 # Gets flows in the specified time range
 #
-# XXX TESTME
 sub getFlowsTimeRange
 {
     my $self = shift();
@@ -159,13 +170,43 @@ sub getFlowsTimeRange
     
     while(my $ref = $sth->fetchrow_hashref)
     {
-         push @$ret_list, $ref;
+       push @$ret_list, $self->processFlowRecord($ref);
     }
 
     return $ret_list;
-
 }
 
+
+# 
+# This routine cleans up a single FlowRecord (select * from the raw_flow table)
+# takes a hashref representing a single record from the raw_flow table;
+# returns the same record with some data conversion done (Net::IP Objects, converted port #s etc)
+sub processFlowRecord
+{
+    my $self = shift();
+    my ($flow_record) = @_;
+    my $ret_struct;
+
+    foreach my $key (keys %{$flow_record})
+    {
+        # Do the data conversion
+        given($key)
+        {
+            #IP Addresses
+            when (/_ip$/) 
+            { 
+                $ret_struct->{$key . "_obj"} = new Net::IP(inet_ntoa($flow_record->{$key}));
+            }
+
+            # if we don't do anything else, just copy the data
+            default { $ret_struct->{$key} = $flow_record->{$key} }
+
+        }
+    }
+
+    return $ret_struct;
+
+}
 
 #
 # "Private" methods below.  Not stopping folks from calling these, but they're really not interesting
