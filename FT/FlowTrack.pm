@@ -122,6 +122,14 @@ sub storeFlow
 
 }
 
+#
+# Handle's building the reports (graphs, html, etc)
+#
+sub runReports
+{
+    my $self = shift();
+}
+
 
 #
 # Gets flows for the last x minutes

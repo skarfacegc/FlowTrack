@@ -30,8 +30,9 @@ my $DATAGRAM_LEN   = 1548;
 # This should be put into a library call somewhere.
 # Will need this value in a few places once
 # we start doing the RRDs
-my $PURGE_INTERVAL = 30;
-my $DBNAME         = "FlowTrack.sqlite";
+my $PURGE_INTERVAL  = 30;
+my $REPORT_INTERVAL = 60;
+my $DBNAME          = "FlowTrack.sqlite";
 
 my $VERBOSE = 1;
 
@@ -54,6 +55,7 @@ sub main
             _start       => \&server_start,
             get_datagram => \&server_read,
             store_data   => \&store_data,
+            run_reports  => \&run_reports,
         }
     );
     POE::Kernel->run();
@@ -89,9 +91,30 @@ sub server_start
     # Send a delayed message to store data
     $kernel->delay( store_data => $PURGE_INTERVAL );
 
+    # Generate the reports
+    $kernel->delay(run_reports => $REPORT_INTERVAL);
+
     # Start off the select read.  use the get_datagram message
     $kernel->select_read( $socket, "get_datagram" );
 }
+
+
+#
+# This is just the callback to start running the reports
+#
+sub run_reports
+{
+    my $kernel = $_[KERNEL];
+    my $ft = $_[HEAP]->{FlowTrack};
+
+    warn " *****  Calling Run Reports\n";
+
+    $ft->runReports;
+
+    $kernel->delay(run_reports => $REPORT_INTERVAL);
+        
+}
+
 
 #
 # Do something with the data we've collected.  Reads the cached data out of heap and stores it.
