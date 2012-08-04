@@ -29,24 +29,24 @@ my $VERBOSE = 1;
 #
 sub new
 {
-    my $class = shift;
-    my $self  = {};
+	my $class = shift;
+	my $self  = {};
 
-    ( $self->{location}, $self->{debug}, $self->{dbname}, $self->{internal_network} ) = @_;
+	( $self->{location}, $self->{debug}, $self->{dbname}, $self->{internal_network} ) = @_;
 
-    # ensure we have some defaults
-    $self->{dbname}           ||= "FlowTrack.sqlite";
-    $self->{location}         ||= "Data";
-    $self->{debug}            ||= 0;
-    $self->{internal_network} ||= "192.168.1.0/16";
+	# ensure we have some defaults
+	$self->{dbname}           ||= "FlowTrack.sqlite";
+	$self->{location}         ||= "Data";
+	$self->{debug}            ||= 0;
+	$self->{internal_network} ||= "192.168.1.0/16";
 
-    # Setup space for connection pools and the database handle
-    $self->{db_connection_pool} = {};
-    $self->{dbh}                = {};
-    $self->{internal_net_obj}   = {};
-    
-    bless( $self, $class );
-    return $self;
+	# Setup space for connection pools and the database handle
+	$self->{db_connection_pool} = {};
+	$self->{dbh}                = {};
+	$self->{internal_net_obj}   = {};
+	
+	bless( $self, $class );
+	return $self;
 }
 
 
@@ -59,68 +59,68 @@ sub new
 #
 sub storeFlow
 {
-    my ($self, $flows) = @_;
-    my $insert_struct;
+	my ($self, $flows) = @_;
+	my $insert_struct;
 
-    my $insert_queue;
-    my $batch_counter = 0;
-    my $total_saved = 0;
-    my $batch_size = 100;
-
-
-    # Don't do anything if we don't have flows
-    return unless(defined($flows));
-    
-    my $dbh = $self->_initDB();
+	my $insert_queue;
+	my $batch_counter = 0;
+	my $total_saved = 0;
+	my $batch_size = 100;
 
 
-    # TODO: turn this into an array. . . .
-    my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
-      VALUES (?,?,?,?,?,?,?) }; 
+	# Don't do anything if we don't have flows
+	return unless(defined($flows));
+	
+	my $dbh = $self->_initDB();
 
 
-      my $sth = $dbh->prepare($sql) or croak("Coudln't preapre SQL: " . $DBI::errstr);
+	# TODO: turn this into an array. . . .
+	my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
+	  VALUES (?,?,?,?,?,?,?) }; 
 
-      foreach my $flow_rec (@{$flows})
-      {
-        # creat a datastructure that looks like this
-        # $insert_struct->[batch]{field_name1} = [ array of all values for field_name1 ]
-        # $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
-        #
-        # To be used by execute array
-        map
-        {
-            push(@{$insert_struct->[$batch_counter]{$_}}, $flow_rec->{$_});
-        }
-        keys %$flow_rec;
-        
-        $insert_queue++;
-        if($insert_queue > $batch_size)
-        {
-            $batch_counter++;
-            $insert_queue = 0;
-        }
-    }
-    
-    foreach my $batch (@$insert_struct)
-    {       
-        my @tuple_status;
-        my $rows_saved = $sth->execute_array({
-           ArrayTupleStatus => \@tuple_status    
-           }, 
-           $batch->{fl_time},
-           $batch->{src_ip},
-           $batch->{dst_ip},
-           $batch->{src_port},
-           $batch->{dst_port},
-           $batch->{bytes},
-           $batch->{packets}) or
-        croak(print Dumper(\@tuple_status) . "\n trying to store flow in DB DBI: " .$DBI::errstr);
 
-        $total_saved += $rows_saved;
-    }
+	  my $sth = $dbh->prepare($sql) or croak("Coudln't preapre SQL: " . $DBI::errstr);
 
-    warn localtime . "  - Saved $total_saved\n";
+	  foreach my $flow_rec (@{$flows})
+	  {
+		# creat a datastructure that looks like this
+		# $insert_struct->[batch]{field_name1} = [ array of all values for field_name1 ]
+		# $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
+		#
+		# To be used by execute array
+		map
+		{
+			push(@{$insert_struct->[$batch_counter]{$_}}, $flow_rec->{$_});
+		}
+		keys %$flow_rec;
+		
+		$insert_queue++;
+		if($insert_queue > $batch_size)
+		{
+			$batch_counter++;
+			$insert_queue = 0;
+		}
+	}
+	
+	foreach my $batch (@$insert_struct)
+	{       
+		my @tuple_status;
+		my $rows_saved = $sth->execute_array({
+		   ArrayTupleStatus => \@tuple_status    
+		   }, 
+		   $batch->{fl_time},
+		   $batch->{src_ip},
+		   $batch->{dst_ip},
+		   $batch->{src_port},
+		   $batch->{dst_port},
+		   $batch->{bytes},
+		   $batch->{packets}) or 
+		croak(print Dumper(\@tuple_status) . "\n trying to store flow in DB DBI: " .$DBI::errstr);
+
+		$total_saved += $rows_saved;
+	}
+
+	warn localtime . "  - Saved $total_saved\n";
 
 }
 
@@ -129,7 +129,7 @@ sub storeFlow
 #
 sub runReports
 {
-    my $self = shift();
+	my $self = shift();
 }
 
 
@@ -139,17 +139,17 @@ sub runReports
 # returns an array of flows for the last x minutes
 sub getFlowsForLast
 {
-    my $self = shift();
-    my ($range) = @_;
-    my $now = time;
+	my $self = shift();
+	my ($range) = @_;
+	my $now = time;
 
-    my $start_time;
-    my $end_time;
+	my $start_time;
+	my $end_time;
 
-    $start_time = $now - ($range * 60);
-    $end_time = $now;
+	$start_time = $now - ($range * 60);
+	$end_time = $now;
 
-    return getFlowsTimeRange($start_time, $end_time);
+	return getFlowsTimeRange($start_time, $end_time);
 }
 
 
@@ -158,22 +158,22 @@ sub getFlowsForLast
 #
 sub getFlowsTimeRange
 {
-    my $self = shift();
-    my $dbh = $self->_initDB();
-    my $ret_list;
+	my $self = shift();
+	my $dbh = $self->_initDB();
+	my $ret_list;
 
-    my($start_time, $end_time) = @_;
+	my($start_time, $end_time) = @_;
 
-    my $sql = "SELECT * FROM raw_flow WHERE fl_time >= ? AND fl_time <= ?";
-    my $sth = $dbh->prepare($sql);
-    $sth->execute($start_time, $end_time + 1);
-    
-    while(my $ref = $sth->fetchrow_hashref)
-    {
-       push @$ret_list, $self->processFlowRecord($ref);
-    }
+	my $sql = "SELECT * FROM raw_flow WHERE fl_time >= ? AND fl_time <= ?";
+	my $sth = $dbh->prepare($sql);
+	$sth->execute($start_time, $end_time + 1);
+	
+	while(my $ref = $sth->fetchrow_hashref)
+	{
+	   push @$ret_list, $self->processFlowRecord($ref);
+	}
 
-    return $ret_list;
+	return $ret_list;
 }
 
 
@@ -183,28 +183,28 @@ sub getFlowsTimeRange
 # returns the same record with some data conversion done (Net::IP Objects, converted port #s etc)
 sub processFlowRecord
 {
-    my $self = shift();
-    my ($flow_record) = @_;
-    my $ret_struct;
+	my $self = shift();
+	my ($flow_record) = @_;
+	my $ret_struct;
 
-    foreach my $key (keys %{$flow_record})
-    {
-        # Do the data conversion
-        given($key)
-        {
-            #IP Addresses
-            when (/_ip$/) 
-            { 
-                $ret_struct->{$key . "_obj"} = new Net::IP(inet_ntoa($flow_record->{$key}));
-            }
+	foreach my $key (keys %{$flow_record})
+	{
+		# Do the data conversion
+		given($key)
+		{
+			#IP Addresses
+			when (/_ip$/) 
+			{ 
+				$ret_struct->{$key . "_obj"} = new Net::IP(inet_ntoa($flow_record->{$key}));
+			}
+			
+			# if we don't do anything else, just copy the data
+			default { $ret_struct->{$key} = $flow_record->{$key} }
 
-            # if we don't do anything else, just copy the data
-            default { $ret_struct->{$key} = $flow_record->{$key} }
+		}
+	}
 
-        }
-    }
-
-    return $ret_struct;
+	return $ret_struct;
 
 }
 
@@ -223,36 +223,36 @@ sub processFlowRecord
 #
 sub _initDB
 {
-    my ( $self) = @_;
+	my ( $self) = @_;
 
-    my $db_name =  $self->{dbname};
+	my $db_name =  $self->{dbname};
 
-    if ( defined( $self->{db_connection_pool}{$$} ) )
-    {
-        $self->{dbh} = $self->{db_connection_pool}{$$};
-        return $self->{dbh};
-    }
-    else
-    {
+	if ( defined( $self->{db_connection_pool}{$$} ) )
+	{
+		$self->{dbh} = $self->{db_connection_pool}{$$};
+		return $self->{dbh};
+	}
+	else
+	{
 
-        $self->_checkDirs();
-        
-        my $dbfile = $self->{location} . "/" . $db_name;
+		$self->_checkDirs();
+		
+		my $dbfile = $self->{location} . "/" . $db_name;
 
-        my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbfile", "", "" );
+		my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbfile", "", "" );
 
-        if ( defined($dbh) )
-        {
-            $self->{dbh} = $dbh;
-            $self->{db_connection_pool}{$$} = $dbh;
-            return $dbh;
-        }
-        else
-        {
+		if ( defined($dbh) )
+		{
+			$self->{dbh} = $dbh;
+			$self->{db_connection_pool}{$$} = $dbh;
+			return $dbh;
+		}
+		else
+		{
 
-            croak("_initDB failed: $dbfile" . $DBI::errstr);
-        }
-    }
+			croak("_initDB failed: $dbfile" . $DBI::errstr);
+		}
+	}
 }
 
 
@@ -268,45 +268,45 @@ sub _initDB
 #
 sub _createTables
 {
-    my ($self) = @_;
-    my $tables = [qw/raw_flow/];
+	my ($self) = @_;
+	my $tables = [qw/raw_flow/];
 
-    foreach my $table (@$tables)   {
-        if(!$self->_tableExists($table))
-        {
-            my $dbh = $self->_initDB();
-            my $sql = $self->get_create_sql($table);
-            
-            if(!defined($sql) || $sql eq "")
-            {
-                croak("Couldn't create SQL statement for $table");
-            }
+	foreach my $table (@$tables)   {
+		if(!$self->_tableExists($table))
+		{
+			my $dbh = $self->_initDB();
+			my $sql = $self->get_create_sql($table);
+			
+			if(!defined($sql) || $sql eq "")
+			{
+				croak("Couldn't create SQL statement for $table");
+			}
 
-            my $sth = $dbh->prepare($sql);
-            my $rv = $sth->execute();
-            
-            if(!defined($rv))
-            {
-                croak($DBI::errstr);
-            }
-        }
-    }    
-    
-    return 1;
+			my $sth = $dbh->prepare($sql);
+			my $rv = $sth->execute();
+			
+			if(!defined($rv))
+			{
+				croak($DBI::errstr);
+			}
+		}
+	}    
+	
+	return 1;
 }
 
 
 # returns 1 if the named table exists
 sub _tableExists
 {
-    my $self = shift();
-    my ($table_name) = @_;
+	my $self = shift();
+	my ($table_name) = @_;
 
-    my $dbh = $self->_initDB();
-    
-    my @tables = $dbh->tables();
+	my $dbh = $self->_initDB();
+	
+	my @tables = $dbh->tables();
 
-    return grep {/$table_name/}  @tables;
+	return grep {/$table_name/}  @tables;
 }
 
 
@@ -314,18 +314,18 @@ sub _tableExists
 # Check to make sure the data directory exists, if not, create it.
 sub _checkDirs
 {
-    my $self = shift();
-    my $err;
+	my $self = shift();
+	my $err;
 
-    unless(-d $self->{location})
-    {
-        # make path handles error checking
-        make_path($self->{location});
-    }
+	unless(-d $self->{location})
+	{
+		# make path handles error checking
+		make_path($self->{location});
+	}
 
-    # Make sure the directory exists
-    croak($self->{location} . " strangely absent") unless(-d $self->{location});
-    
+	# Make sure the directory exists
+	croak($self->{location} . " strangely absent") unless(-d $self->{location});
+	
 }
 
 #
@@ -333,14 +333,14 @@ sub _checkDirs
 #
 sub _getInternalNetworkObj
 {
-    my $self = shift();
+	my $self = shift();
 
-    unless(exists($self->{internal_net_obj}) && defined($self->{internal_net_obj}))
-    {
-        $self->{internal_net_obj} = new Net::IP($self->{internal_network});
-    }
+	unless(exists($self->{internal_net_obj}) && defined($self->{internal_net_obj}))
+	{
+		$self->{internal_net_obj} = new Net::IP($self->{internal_network});
+	}
 
-    return $self->{internal_net_obj};
+	return $self->{internal_net_obj};
 }
 
 
@@ -351,29 +351,29 @@ sub _getInternalNetworkObj
 #
 sub AUTOLOAD
 {
-    # Need to shift off self.  Dont't think that FT::Schema is going to need it
-    # but I'm not sure.  Either way, we want it off of @_;
-    my $self = shift();
+	# Need to shift off self.  Dont't think that FT::Schema is going to need it
+	# but I'm not sure.  Either way, we want it off of @_;
+	my $self = shift();
 
-    given($AUTOLOAD)
-    {
-        when (/get_tables/)
-        {
-            return FT::Schema::get_tables(@_);
-        }
-        
-        when(/get_table/)
-        {
-            return FT::Schema::get_table(@_);
-        }
+	given($AUTOLOAD)
+	{
+		when (/get_tables/)
+		{
+			return FT::Schema::get_tables(@_);
+		}
+		
+		when(/get_table/)
+		{
+			return FT::Schema::get_table(@_);
+		}
 
-        when(/get_create_sql/)
-        {
-            return FT::Schema::get_create_sql(@_);
-        }
+		when(/get_create_sql/)
+		{
+			return FT::Schema::get_create_sql(@_);
+		}
 
-        
-    }
+		
+	}
 }
 1;
 __END__
