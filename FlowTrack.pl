@@ -84,9 +84,9 @@ sub server_start
 
     $_[HEAP]->{FlowTrack} = $ft;
 
-# Not going to start the webserver right now.  Focus on flow collection    
-#    my $child =
-#      POE::Wheel::Run->new( Program => \&FT::FlowTrackWeb::ServerStart, );
+    # Not going to start the webserver right now.  Focus on flow collection    
+    #    my $child =
+    #        POE::Wheel::Run->new( Program => \&FT::FlowTrackWeb::ServerStart, );
 
     # Send a delayed message to store data
     $kernel->delay( store_data => $PURGE_INTERVAL );
@@ -96,6 +96,8 @@ sub server_start
 
     # Start off the select read.  use the get_datagram message
     $kernel->select_read( $socket, "get_datagram" );
+
+    return;
 }
 
 
@@ -112,7 +114,8 @@ sub run_reports
     $ft->runReports;
 
     $kernel->delay(run_reports => $REPORT_INTERVAL);
-        
+
+    return;    
 }
 
 
@@ -135,6 +138,8 @@ sub store_data
 
     # Restart the timer
     $kernel->delay( store_data => $PURGE_INTERVAL );
+
+    return;
 }
 
 #
@@ -164,6 +169,7 @@ sub server_read
     # Put the decoded flow onto the HEAP for later storage (via store_data)
     push( @{ $_[HEAP]->{'flows'} }, @$decoded_packet );
 
+    return;
 }
 
 #

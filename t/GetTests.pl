@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 
+use strict;
 use FT::FlowTrack;
 use Data::Dumper;
 
@@ -11,3 +12,5 @@ my $foo = $ft->getFlowsTimeRange(time - 30, time);
 
 print Dumper($foo);
 print "Count: " . scalar(@$foo) . "\n";
+
+

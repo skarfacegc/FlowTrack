@@ -121,7 +121,7 @@ sub storeFlow
 	}
 
 	warn localtime . "  - Saved $total_saved\n";
-
+	return;
 }
 
 #
@@ -130,6 +130,8 @@ sub storeFlow
 sub runReports
 {
 	my $self = shift();
+
+	return;
 }
 
 
@@ -174,6 +176,20 @@ sub getFlowsTimeRange
 	}
 
 	return $ret_list;
+}
+
+#
+# This is the main "query runner"
+# Takes the built up query, returns a list of flows
+# 
+sub getIngressFlowsForLast
+{
+	my $self = shift();
+	my ($sql) = @_;
+
+	my $internal_network = new Net::IP($self->{internal_network});
+
+	return;
 }
 
 
@@ -295,7 +311,6 @@ sub _createTables
 	return 1;
 }
 
-
 # returns 1 if the named table exists
 sub _tableExists
 {
@@ -325,7 +340,8 @@ sub _checkDirs
 
 	# Make sure the directory exists
 	croak($self->{location} . " strangely absent") unless(-d $self->{location});
-	
+
+	return;
 }
 
 #
@@ -374,6 +390,8 @@ sub AUTOLOAD
 
 		
 	}
+
+	return;
 }
 1;
 __END__
