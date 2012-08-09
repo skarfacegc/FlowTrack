@@ -10,7 +10,7 @@ sub new
 
 sub _graphInit
 {
-	
+
 }
 
 1;
