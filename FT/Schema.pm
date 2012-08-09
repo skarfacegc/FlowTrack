@@ -166,3 +166,4 @@ sub get_create_sql
     return $sql;
 }
 
+1;

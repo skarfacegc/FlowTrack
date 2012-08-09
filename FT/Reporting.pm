@@ -1,4 +1,4 @@
-package FT::Graphing;
+package FT::Reporting;
 use strict;
 use warnings;
 use RRD::Simple;

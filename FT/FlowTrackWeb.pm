@@ -1,5 +1,7 @@
 package FT::FlowTrackWeb;
 
+use strict;
+use warnings;
 use POE;
 use POE::Component::Server::HTTP;
 use HTTP::Status qw(:constants);

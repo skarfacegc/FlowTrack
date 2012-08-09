@@ -4,7 +4,8 @@
 # This isn't particularly pretty, but it just runs all of the tests in t/
 # All it needs to do at this point
 #
-
+use strict;
+use warnings;
 use TAP::Harness;
 
 my %args = (
@@ -17,5 +18,5 @@ my %args = (
 my $harness = TAP::Harness->new( \%args );
 
 
-my $aggregator = $harness->runtests(<t/*.t>);
+my $aggregator = $harness->runtests(glob(t/*.t));
 
