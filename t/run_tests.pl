@@ -18,5 +18,5 @@ my %args = (
 my $harness = TAP::Harness->new( \%args );
 
 
-my $aggregator = $harness->runtests(glob(t/*.t));
+my $aggregator = $harness->runtests(glob("t/*.t"));
 
