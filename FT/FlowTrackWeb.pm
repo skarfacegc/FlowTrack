@@ -14,7 +14,7 @@ sub ServerStart
 
     warn "Starting server";
 
-    $httpd = POE::Component::Server::HTTP->new(
+    my $httpd = POE::Component::Server::HTTP->new(
         Port           => 8000,
         ContentHandler => { '/' => \&homepage },
         Headers        => { Server => 'My Server' },
