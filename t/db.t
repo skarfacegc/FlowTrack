@@ -44,7 +44,7 @@ sub object_tests
 
     # Default Values
     my $ft_default = FT::FlowTrack->new();
-    ok($ft_default->{location} eq "/tmp", "default location");
+    ok($ft_default->{location} eq "Data", "default location");
     ok($ft_default->{debug} == 0, "default debug setting");
     ok($ft_default->{dbname} eq "FlowTrack.sqlite", "default DB name");
 

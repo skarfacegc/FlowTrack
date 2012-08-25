@@ -1,7 +1,8 @@
 #!/usr/bin/env perl
 #
 #
-
+use strict;
+use warnings;
 use XML::Simple;
 use Data::Dumper;
 
