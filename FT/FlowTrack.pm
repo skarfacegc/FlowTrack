@@ -41,9 +41,14 @@ sub new
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
     $self->{dbh}                = {};
-    $self->{internal_net_obj}   = {};
+    
 
     bless( $self, $class );
+    
+    $self->{dbh} = $self->_initDB();  
+    $self->_createTables();
+
+
     return $self;
 }
 
@@ -416,21 +421,6 @@ sub _checkDirs
     return;
 }
 
-#
-# returns the Net::IP Object for the internal network
-#
-sub _getInternalNetworkObj
-{
-    my $self = shift();
-
-    unless ( exists( $self->{internal_net_obj} )
-             && defined( $self->{internal_net_obj} ) )
-    {
-        $self->{internal_net_obj} = new Net::IP( $self->{internal_network} );
-    }
-
-    return $self->{internal_net_obj};
-}
 
 #
 # So we can passthrough calls to the Schema routines
