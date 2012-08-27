@@ -2,7 +2,9 @@
 # The routines used to process the stream coming from the netflow server lives here.
 # Migrated from FlowTrack.pl
 package FT::PacketHandler;
-
+use strict;
+use warnings;
+use Time::HiRes;
 
 #
 # Actually do the packet decode
