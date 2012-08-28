@@ -2,6 +2,7 @@ package FT::FlowTrackWeb;
 
 use strict;
 use warnings;
+use Carp qw(cluck);
 use POE;
 use POE::Component::Server::HTTP;
 use HTTP::Status qw(:constants);
@@ -12,7 +13,7 @@ sub ServerStart
 {
     POE::Kernel->stop();
 
-    warn "Starting server";
+    carp "Starting server";
 
     my $httpd = POE::Component::Server::HTTP->new(
         Port           => 8000,

@@ -2,7 +2,7 @@ package FT::FlowTrack;
 
 use v5.10;
 
-use Carp;
+use Carp qw(cluck);
 use strict;
 use warnings;
 use autodie;
@@ -113,7 +113,7 @@ sub storeFlow
         $total_saved += $rows_saved;
     }
 
-    warn localtime . "  - Saved $total_saved\n";
+    carp localtime . "  - Saved $total_saved\n";
     return;
 }
 

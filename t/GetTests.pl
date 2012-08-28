@@ -1,11 +1,13 @@
 #!/usr/bin/env perl
 
 use strict;
+use warnings;
+use Carp qw(cluck);
 use FT::FlowTrack;
 use Data::Dumper;
 
 my $ft = FT::FlowTrack->new( "./Data", 1, "FlowTrack.sqlite", "192.168.1.0/24");
-warn Dumper($ft);
+carp Dumper($ft);
 my $foo = $ft->getIngressFlowsInTimeRange( time - 30, time );
 
 print Dumper($foo);

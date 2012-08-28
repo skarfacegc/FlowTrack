@@ -8,6 +8,7 @@
 package FT::FlowCollector;
 use strict;
 use warnings;
+use Carp qw(cluck);
 use Data::Dumper;
 use Net::Flow qw(decode);
 use FT::PacketHandler;
@@ -67,9 +68,9 @@ sub child_finish_hook
     my $self      = shift();
     my $flow_data = $self->{data}{flow_data};
 
-    warn "Cleanup\n";
+    carp "Cleanup\n";
 
-    # warn Dumper($self->{data}{flow_data});
+    # carp Dumper($self->{data}{flow_data});
     $FT->storeFlow($flow_data) if ( defined($flow_data) );
     $self->{data}{flow_data} = undef;
 }
@@ -84,7 +85,7 @@ sub process_request
 
     my $flow_data = FT::PacketHandler::decode_packet( $self->{server}{udp_data} );
 
-    warn "Store Count: " . scalar( @{$flow_data} );
+    carp "Store Count: " . scalar( @{$flow_data} );
 
     push( @{ $self->{data}{flow_data} }, @$flow_data );
 

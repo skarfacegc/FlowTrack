@@ -3,6 +3,7 @@
 # Migrated from FlowTrack.pl
 package FT::PacketHandler;
 use strict;
+use Carp qw(cluck);
 use warnings;
 use Time::HiRes;
 
