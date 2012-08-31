@@ -2,7 +2,7 @@ package FT::FlowTrackWeb;
 
 use strict;
 use warnings;
-use Carp qw(cluck);
+use Carp;
 use POE;
 use POE::Component::Server::HTTP;
 use HTTP::Status qw(:constants);

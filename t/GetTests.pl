@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Carp qw(cluck);
+use Carp;
 use FT::FlowTrack;
 use Data::Dumper;
 

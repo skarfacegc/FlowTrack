@@ -8,7 +8,7 @@
 package FT::FlowCollector;
 use strict;
 use warnings;
-use Carp qw(cluck);
+use Carp;
 use Data::Dumper;
 use Net::Flow qw(decode);
 use FT::PacketHandler;
@@ -35,7 +35,7 @@ sub CollectorStart
 {
     FT::FlowCollector->run(
                         port         => "*:$PORT/udp",
-                        log_level    => 4,
+                        log_level    => 0,
                         min_spare_servers => 3,
                         max_spare_server => 5,
                         max_servers  => 5,
@@ -68,7 +68,7 @@ sub child_finish_hook
     my $self      = shift();
     my $flow_data = $self->{data}{flow_data};
 
-    carp "Cleanup\n";
+    carp "Cleanup";
 
     # carp Dumper($self->{data}{flow_data});
     $FT->storeFlow($flow_data) if ( defined($flow_data) );
