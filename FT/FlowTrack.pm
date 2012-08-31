@@ -113,7 +113,7 @@ sub storeFlow
         $total_saved += $rows_saved;
     }
 
-    carp localtime . "  - Saved $total_saved";
+    carp "Saved: $total_saved";
     return;
 }
 

@@ -68,7 +68,7 @@ sub child_finish_hook
     my $self      = shift();
     my $flow_data = $self->{data}{flow_data};
 
-    carp "Cleanup";
+    carp "Cleanup ($$)";
 
     # carp Dumper($self->{data}{flow_data});
     $FT->storeFlow($flow_data) if ( defined($flow_data) );
