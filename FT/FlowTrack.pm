@@ -74,7 +74,6 @@ sub storeFlow
 
     my $dbh = $self->_initDB();
 
-    # TODO: turn this into an array. . . .
     my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
       VALUES (?,?,?,?,?,?,?) };
 

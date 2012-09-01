@@ -35,7 +35,6 @@ sub main
     foreach my $process ( keys %$command_hash )
     {
 
-        carp "$process";
         my $pid = fork;
 
         if ($pid)
