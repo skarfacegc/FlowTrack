@@ -17,25 +17,28 @@ use Carp;
 
 use FT::FlowCollector;
 use FT::FlowTrackWeb;
+use Mojo::Server;
+use Mojo::Server::Daemon;
+use Mojolicious::Commands;
 
 # Loop and fork!
 main();
+
 sub main
 {
     my $command_hash;
     my @pids;
 
     # Here is where we define which routines to fork and run.
-    # perhaps a bit of over kill, but seems easier to add and change 
+    # perhaps a bit of over kill, but seems easier to add and change
     # stuff this way.
-    $command_hash->{Collector} = \&startCollector;
+    $command_hash->{Collector}  = \&startCollector;
     $command_hash->{runReports} = \&runReports;
-    $command_hash->{WebServer} = \&startWebserver;
+    $command_hash->{WebServer}  = \&startWebserver;
 
     foreach my $process ( keys %$command_hash )
     {
 
-        carp "$process";
         my $pid = fork;
 
         if ($pid)
@@ -63,9 +66,12 @@ sub startCollector
     FT::FlowCollector::CollectorStart();
 }
 
+# Setups the mojo server.  The application code lives in FlowTrackWeb.pm
 sub startWebserver
 {
-    FT::FlowTrackWeb::runServer();
+    my $daemon = Mojo::Server::Daemon->new( listen => ['http://*:5656'] );
+    $daemon->app( FT::FlowTrackWeb->new() );
+    $daemon->run();
 }
 
 # This sub handles running the reports.
@@ -77,9 +83,9 @@ sub runReports
     while (1)
     {
         # sleep to the next 5 minute boundry
-        sleep 300 - (time % 300);
+        sleep 300 - ( time % 300 );
 
-        carp "Running report " . scalar(localtime());
+        carp "Running report " . scalar( localtime() );
 
         sleep 300;
     }
