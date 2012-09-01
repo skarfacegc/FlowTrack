@@ -35,8 +35,7 @@ You'll need the following perl modules:
 - Mojolicious
 - Net::Flow
 - Net::IP
-- Log::Message::Simple
-- HTTTP::Status (webserver currently commented out)
+- Log::Message::Simple (May not need this one any more)
 - DBD::SQLite
  
 Running
