@@ -16,6 +16,7 @@ use English;
 use Carp;
 
 use FT::FlowCollector;
+use FT::FlowTrackWeb;
 
 # Loop and fork!
 main();
@@ -29,6 +30,7 @@ sub main
     # stuff this way.
     $command_hash->{Collector} = \&startCollector;
     $command_hash->{runReports} = \&runReports;
+    $command_hash->{WebServer} = \&startWebserver;
 
     foreach my $process ( keys %$command_hash )
     {
@@ -59,6 +61,11 @@ sub main
 sub startCollector
 {
     FT::FlowCollector::CollectorStart();
+}
+
+sub startWebserver
+{
+    FT::FlowTrackWeb::runServer();
 }
 
 # This sub handles running the reports.
