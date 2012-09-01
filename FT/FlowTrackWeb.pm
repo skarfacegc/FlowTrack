@@ -2,33 +2,34 @@ package FT::FlowTrackWeb;
 
 use strict;
 use warnings;
-use Carp;
-use POE;
-use POE::Component::Server::HTTP;
-use HTTP::Status qw(:constants);
 
-# This starts the server
-# Should be called via WheelRun from FlowTrack.pm
-sub ServerStart
+use Mojo::Server::Daemon;
+
+
+
+
+sub runServer
 {
-    POE::Kernel->stop();
+    my $daemon = Mojo::Server::Daemon->new( listen => ['http://*:5656'] );
+    $daemon->unsubscribe('request');
+    $daemon->on(
+        request => sub {
+            my ( $daemon, $tx ) = @_;
 
-    carp "Starting server";
+            # Request
+            my $method = $tx->req->method;
+            my $path   = $tx->req->url->path;
 
-    my $httpd = POE::Component::Server::HTTP->new(
-        Port           => 8000,
-        ContentHandler => { '/' => \&homepage },
-        Headers        => { Server => 'My Server' },
+            # Response
+            $tx->res->code(200);
+            $tx->res->headers->content_type('text/plain');
+            $tx->res->body("$method request for $path!");
+
+            # Resume transaction
+            $tx->resume;
+        }
     );
-    POE::Kernel->run();
-
+    $daemon->run;
 }
 
-sub homepage
-{
-    my ( $request, $response ) = @_;
-    $response->code(RC_OK);
-    $response->content( "Hi, you fetched " . $request->uri );
-    return RC_OK;
-}
 1;
