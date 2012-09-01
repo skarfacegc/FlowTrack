@@ -2,34 +2,25 @@ package FT::FlowTrackWeb;
 
 use strict;
 use warnings;
+use Carp;
+use Mojo::Base 'Mojolicious';
+use Data::Dumper;
+use vars '$AUTOLOAD';
 
-use Mojo::Server::Daemon;
-
-
-
-
-sub runServer
+sub startup
 {
-    my $daemon = Mojo::Server::Daemon->new( listen => ['http://*:5656'] );
-    $daemon->unsubscribe('request');
-    $daemon->on(
-        request => sub {
-            my ( $daemon, $tx ) = @_;
+    my $self = shift();
 
-            # Request
-            my $method = $tx->req->method;
-            my $path   = $tx->req->url->path;
+    my $r = $self->routes;
 
-            # Response
-            $tx->res->code(200);
-            $tx->res->headers->content_type('text/plain');
-            $tx->res->body("$method request for $path!");
+    $r->get(
+        '/' => sub {
+            my $self = shift;
 
-            # Resume transaction
-            $tx->resume;
+            #        my $foo = $self->param('foo');
+            $self->render( text => "Howdy!!" );
         }
     );
-    $daemon->run;
 }
 
 1;
