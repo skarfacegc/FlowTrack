@@ -10,7 +10,6 @@ use Time::HiRes;
 #
 # Actually do the packet decode
 #
-# TODO: Move packet/flow handling to a pm
 #
 sub decode_packet
 {
@@ -28,7 +27,6 @@ sub decode_packet
 # Make a usable datastructure out of the data from decode_packet
 # Since we can get multiple records we're returning a list here
 #
-# TODO: Move packet/flow handling to a pm
 #
 sub decode_netflow
 {
