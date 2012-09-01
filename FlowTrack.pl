@@ -49,7 +49,7 @@ sub main
         # Run the command
         &{ $command_hash->{$process} };
 
-        croak "Exiting process";
+        croak "Exiting process ($$)";
     }
 
     wait for @pids;
@@ -69,10 +69,8 @@ sub runReports
     carp "Starting report loop";
     while (1)
     {
-        my $delay = 300 - (time % 300);
-
         # sleep to the next 5 minute boundry
-        sleep $delay;
+        sleep 300 - (time % 300);
 
         carp "Running report " . scalar(localtime());
 
