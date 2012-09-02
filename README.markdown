@@ -1,12 +1,8 @@
 Next Steps
 ----------
-1. Cleanup the run script
-   - Dameonize itself
-   - pull more logic into packages
-1. Generate test to actually test collection
-2. Generate Summary data
-3. WebUI
-
+- Cleanup DB schema def
+- Fillout webserver (make it do stuff)
+- collect graphs into RRDs
 
 
 
@@ -33,16 +29,13 @@ measurement.  (short of looping small flow-gen batches)
 
 Installation
 ------------
-You'll need the following perl modules (cleanup branch 1.17.12):
+You'll need the following perl modules:
 
-- POE
-- POE::Component::Server:HTTP (webserver currently commented out, but module is still used)
-- LWP::UserAgent (required by above, but not installed as part of the cpan install)
-- POE::Wheel::Run
+- Net::Server
+- Mojolicious
 - Net::Flow
 - Net::IP
-- Log::Message::Simple
-- HTTTP::Status (webserver currently commented out)
+- Log::Message::Simple (May not need this one any more)
 - DBD::SQLite
  
 Running

@@ -1,31 +1,22 @@
 package FT::FlowTrackWeb;
 
-use POE;
-use POE::Component::Server::HTTP;
-use HTTP::Status qw(:constants);
+use strict;
+use warnings;
+use Carp;
+use Mojo::Base 'Mojolicious';
+use Data::Dumper;
+use vars '$AUTOLOAD';
 
-# This starts the server
-# Should be called via WheelRun from FlowTrack.pm
-sub ServerStart
+sub startup
 {
-    POE::Kernel->stop();
+    my $self = shift();
 
-    warn "Starting server";
+    my $r = $self->routes;
 
-    $httpd = POE::Component::Server::HTTP->new(
-        Port           => 8000,
-        ContentHandler => { '/' => \&homepage },
-        Headers        => { Server => 'My Server' },
-    );
-    POE::Kernel->run();
+    $r->route('/')->name('index')->to(controller=>'main', action=>'index');
 
+    $r->route('/FlowsForLast/:timerange')->to(controller=>'main', action=>'simpleFlows');
+    $r->route('/json/FlowsForLast/:timerange')->to(controller=>'main',action=>'simpleFlowsJSON');
 }
 
-sub homepage
-{
-    my ( $request, $response ) = @_;
-    $response->code(RC_OK);
-    $response->content( "Hi, you fetched " . $request->uri );
-    return RC_OK;
-}
 1;
