@@ -1,59 +1,58 @@
-Flows for last <%= $timerange %>
-Count: <%= scalar(@$flow_struct) %>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>FlowTrack</title>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.8.2/css/jquery.dataTables.css">
+
+    <!-- jQuery -->
+    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
+
+    <!-- DataTables -->
+    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.8.2/jquery.dataTables.min.js"></script>
+
+    <script>
+    $(document).ready(function($) 
+    {
+        $('#flowList').dataTable({
+            "bProcessing": true,
+            "sAjaxSource": 'http://localhost:5656/json/FlowsForLast/1',
+        });
+
+    });
+    
+    </script>
 
 
 
-% use Net::IP;
-<table>
-    <tr>
-        <th>
-            Source IP
-        </th>
-        <th>
-            Source Port
-        </th>
-
-        <th>
-            Dest IP
-        </th>
-
-        <th>
-            Dest Port
-        </th>
-        <th>
-            Bytes
-        </th>
-        <th>
-            Packets
-        </th>
-    </tr>
+</head>
+<body>
 
 
-    % foreach my $flow (@$flow_struct)
-    % {
-    <tr>
-       <td>
-        %= $flow->{src_ip_obj}->ip();
-    </td>
-    <td>
-        %= $flow->{src_port};
-    </td>
-    <td>
-        %= $flow->{dst_ip_obj}->ip();
-    </td>
-    <td>
-        %= $flow->{dst_port}
-    </td>
-    <td>
-        %= $flow->{bytes}
-    </td>
-    <td>
-        %= $flow->{packets}
-    </td>
-</tr>
-% }
-</table>
 
 
+
+
+
+    <div>
+        <table id="flowList">
+            <thead>
+                <tr>
+                    <th>Source IP</th>
+                    <th>Source Port</th>
+                    <th>Dest IP</th>
+                    <th>Dest Port</th>
+                    <th>Bytes</th>
+                    <th>Packets</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+
+</body>
+</html>
 
 

@@ -13,10 +13,10 @@ sub startup
 
     my $r = $self->routes;
 
-    $r->route('/')->name('index')->to(controller=>'main', action=>'index');
+    $r->route('/')->name('index')->to( controller => 'main', action => 'index' );
 
-    $r->route('/FlowsForLast/:timerange')->to(controller=>'main', action=>'simpleFlows');
-    $r->route('/json/FlowsForLast/:timerange')->to(controller=>'main',action=>'simpleFlowsJSON');
+    $r->route('/FlowsForLast/:timerange')->to( controller => 'main', action => 'simpleFlows' );
+    $r->route('/json/FlowsForLast/:timerange')->to( controller => 'main', action => 'simpleFlowsJSON' );
 }
 
 1;
