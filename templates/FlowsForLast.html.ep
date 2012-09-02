@@ -1,6 +1,59 @@
 Flows for last <%= $timerange %>
-<pre>
 Count: <%= scalar(@$flow_struct) %>
 
-%= dumper $flow_struct
-</pre>
+
+
+% use Net::IP;
+<table>
+    <tr>
+        <th>
+            Source IP
+        </th>
+        <th>
+            Source Port
+        </th>
+
+        <th>
+            Dest IP
+        </th>
+
+        <th>
+            Dest Port
+        </th>
+        <th>
+            Bytes
+        </th>
+        <th>
+            Packets
+        </th>
+    </tr>
+
+
+    % foreach my $flow (@$flow_struct)
+    % {
+    <tr>
+       <td>
+        %= $flow->{src_ip_obj}->ip();
+    </td>
+    <td>
+        %= $flow->{src_port};
+    </td>
+    <td>
+        %= $flow->{dst_ip_obj}->ip();
+    </td>
+    <td>
+        %= $flow->{dst_port}
+    </td>
+    <td>
+        %= $flow->{bytes}
+    </td>
+    <td>
+        %= $flow->{packets}
+    </td>
+</tr>
+% }
+</table>
+
+
+
+

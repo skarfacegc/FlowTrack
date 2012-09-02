@@ -286,6 +286,7 @@ sub processFlowRecord
             #IP Addresses
             when (/_ip$/)
             {
+                $ret_struct->{ $key } = $flow_record->{$key};
                 $ret_struct->{ $key . "_obj" } =
                   new Net::IP( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
             }

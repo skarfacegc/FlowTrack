@@ -11,12 +11,12 @@ sub startup
 {
     my $self = shift();
 
-    carp Dumper($self);
-
     my $r = $self->routes;
 
     $r->route('/')->name('index')->to(controller=>'main', action=>'index');
+
     $r->route('/FlowsForLast/:timerange')->to(controller=>'main', action=>'simpleFlows');
+    $r->route('/json/FlowsForLast/:timerange')->to(controller=>'main',action=>'simpleFlowsJSON');
 }
 
 1;
