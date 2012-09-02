@@ -9,6 +9,9 @@
 #
 # TODO: Daemonize
 # TODO: Check for dead procs
+# TODO: Config file
+# TODO: Make purge interval configurable
+#
 #
 use strict;
 use warnings;

@@ -18,6 +18,9 @@ use vars '$AUTOLOAD';
 
 my $VERBOSE = 1;
 
+# TODO: Move to config file
+my $PURGE   = 120;    # How many seconds to keep raw flow data around.  (i.e. delete everything older than. . . )
+
 #
 # Constructor
 #
@@ -41,13 +44,11 @@ sub new
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
     $self->{dbh}                = {};
-    
 
     bless( $self, $class );
-    
-    $self->{dbh} = $self->_initDB();  
-    $self->_createTables();
 
+    $self->{dbh} = $self->_initDB();
+    $self->_createTables();
 
     return $self;
 }
@@ -112,7 +113,7 @@ sub storeFlow
         $total_saved += $rows_saved;
     }
 
-    carp localtime . "  - Saved $total_saved";
+    carp "Saved: $total_saved";
     return;
 }
 
@@ -266,6 +267,28 @@ sub getEgressFlowsInTimeRange
     return $ret_list;
 }
 
+sub purgeData
+{
+    my $self      = shift();
+    my $dbh = $self->_initDB();
+
+    my $watermark = time - $PURGE;
+    my $rows_deleted = 0;
+
+    my $sql = qq{
+        DELETE FROM raw_flow WHERE fl_time < ?
+    };
+
+    my $sth = $dbh->prepare($sql) or croak( "failed to prepare:" . $DBI::errstr );
+
+    $rows_deleted = $sth->execute($watermark) or carp ("Delete failed: ". $DBI::errstr);
+
+    carp "Purged: $rows_deleted" if ($rows_deleted > 0);
+
+    return;
+}
+
+
 #
 # This routine cleans up a single FlowRecord (select * from the raw_flow table)
 # takes a hashref representing a single record from the raw_flow table;
@@ -284,9 +307,11 @@ sub processFlowRecord
         {
 
             #IP Addresses
+            # Want to leave the original address there as well, in case we can't
+            # get to the object
             when (/_ip$/)
             {
-                $ret_struct->{ $key } = $flow_record->{$key};
+                $ret_struct->{$key} = $flow_record->{$key};
                 $ret_struct->{ $key . "_obj" } =
                   new Net::IP( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
             }

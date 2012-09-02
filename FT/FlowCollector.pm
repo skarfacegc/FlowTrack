@@ -73,6 +73,9 @@ sub child_finish_hook
     # carp Dumper($self->{data}{flow_data});
     $FT->storeFlow($flow_data) if ( defined($flow_data) );
     $self->{data}{flow_data} = undef;
+
+    # Check to see if anything needs to be purged
+    $FT->purgeData();
 }
 
 
