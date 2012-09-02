@@ -13,14 +13,10 @@ sub startup
 
     my $r = $self->routes;
 
-    $r->get(
-        '/' => sub {
-            my $self = shift;
+    $r->route('/')->name('index')->to(controller=>'main', action=>'index');
 
-            #        my $foo = $self->param('foo');
-            $self->render( text => "Howdy!!" );
-        }
-    );
+    $r->route('/FlowsForLast/:timerange')->to(controller=>'main', action=>'simpleFlows');
+    $r->route('/json/FlowsForLast/:timerange')->to(controller=>'main',action=>'simpleFlowsJSON');
 }
 
 1;
