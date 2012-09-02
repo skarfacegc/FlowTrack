@@ -1,0 +1,6 @@
+Flows for last <%= $timerange %>
+<pre>
+Count: <%= scalar(@$flow_struct) %>
+
+%= dumper $flow_struct
+</pre>

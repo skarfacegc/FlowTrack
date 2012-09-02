@@ -11,16 +11,12 @@ sub startup
 {
     my $self = shift();
 
+    carp Dumper($self);
+
     my $r = $self->routes;
 
-    $r->get(
-        '/' => sub {
-            my $self = shift;
-
-            #        my $foo = $self->param('foo');
-            $self->render( text => "Howdy!!" );
-        }
-    );
+    $r->route('/')->name('index')->to(controller=>'main', action=>'index');
+    $r->route('/FlowsForLast/:timerange')->to(controller=>'main', action=>'simpleFlows');
 }
 
 1;

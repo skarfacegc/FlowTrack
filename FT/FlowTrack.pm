@@ -142,7 +142,7 @@ sub getFlowsForLast
     $start_time = $now - ( $range * 60 );
     $end_time = $now;
 
-    return getFlowsInTimeRange( $start_time, $end_time );
+    return $self->getFlowsInTimeRange( $start_time, $end_time );
 }
 
 #
@@ -175,7 +175,7 @@ sub getIngressFlowsForLast
     my $self = shift();
     my ($duration) = @_;
 
-    return getIngressFlowsInTimeRange( time - ( $duration * 60 ), time );
+    return $self->getIngressFlowsInTimeRange( time - ( $duration * 60 ), time );
 
 }
 

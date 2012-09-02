@@ -54,7 +54,7 @@ sub main
         # Run the command
         &{ $command_hash->{$process} };
 
-        croak "Exiting process ($$)";
+        croak "Exiting: $process ($$)";
     }
 
     wait for @pids;
@@ -70,6 +70,10 @@ sub startCollector
 sub startWebserver
 {
     my $daemon = Mojo::Server::Daemon->new( listen => ['http://*:5656'] );
+    my $app = FT::FlowTrackWeb->new();
+    $app->secret('3305CA4A-DE4D-4F34-9A38-F17E0A656A25');
+
+
     $daemon->app( FT::FlowTrackWeb->new() );
     $daemon->run();
 }
@@ -79,13 +83,12 @@ sub startWebserver
 # figure out how many seconds it is to the next 5 minute boundry and sleep for that long.
 sub runReports
 {
-    carp "Starting report loop";
     while (1)
     {
         # sleep to the next 5 minute boundry
         sleep 300 - ( time % 300 );
 
-        carp "Running report " . scalar( localtime() );
+        carp 'Running report: ' . scalar( localtime() );
 
         sleep 300;
     }
