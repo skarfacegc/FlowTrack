@@ -7,7 +7,7 @@ use FT::FlowTrack;
 use Mojo::Base 'Mojolicious::Controller';
 use POSIX;
 
-# TODO: Need an answer for this
+
 our $PORT             = 2055;
 our $DATAGRAM_LEN     = 1548;
 our $DBNAME           = 'FlowTrack.sqlite';
@@ -53,13 +53,11 @@ sub simpleFlowsJSON
     foreach my $flow (@$flow_struct)
     {
         my ( $time, $microsecs ) = split( /\./, $flow->{fl_time} );
-        my $timestamp = strftime("%r",localtime($time));
-        
+        my $timestamp = strftime( "%r", localtime($time) );
+
         my $row_struct = [
-                           $timestamp, $flow->{src_ip_obj}->ip(),
-                           $flow->{src_port},          $flow->{dst_ip_obj}->ip(),
-                           $flow->{dst_port},          $flow->{bytes},
-                           $flow->{packets}
+                           $timestamp,        $flow->{src_ip_obj}->ip(), $flow->{src_port}, $flow->{dst_ip_obj}->ip(),
+                           $flow->{dst_port}, $flow->{bytes},            $flow->{packets}
         ];
 
         push( @{ $ret_struct->{aaData} }, $row_struct );

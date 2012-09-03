@@ -17,7 +17,6 @@ use FT::FlowTrack;
 # this is what actually gets us the server
 use base qw(Net::Server::PreFork);
 
-# TODO: Move this stuff to a config file
 our $PORT             = 2055;
 our $DATAGRAM_LEN     = 1548;
 our $DBNAME           = 'FlowTrack.sqlite';
