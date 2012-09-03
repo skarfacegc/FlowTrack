@@ -5,6 +5,7 @@ use Carp;
 
 use FT::FlowTrack;
 use Mojo::Base 'Mojolicious::Controller';
+use POSIX;
 
 # TODO: Need an answer for this
 our $PORT             = 2055;
@@ -51,17 +52,17 @@ sub simpleFlowsJSON
     # Now we populate aaData
     foreach my $flow (@$flow_struct)
     {
-        my $row_struct = [
-            $flow->{src_ip_obj}->ip(),
-            $flow->{src_port},
-            $flow->{dst_ip_obj}->ip(),
-            $flow->{dst_port},
-            $flow->{bytes},
-            $flow->{packets}
-        ];
+        my ( $time, $microsecs ) = split( /\./, $flow->{fl_time} );
+        my $timestamp = strftime("%r",localtime($time));
         
+        my $row_struct = [
+                           $timestamp, $flow->{src_ip_obj}->ip(),
+                           $flow->{src_port},          $flow->{dst_ip_obj}->ip(),
+                           $flow->{dst_port},          $flow->{bytes},
+                           $flow->{packets}
+        ];
 
-        push(@{$ret_struct->{aaData}}, $row_struct);
+        push( @{ $ret_struct->{aaData} }, $row_struct );
     }
 
     $self->render( { json => $ret_struct } );

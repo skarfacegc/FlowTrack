@@ -17,17 +17,20 @@
     <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet" />  
     <link type="text/css" href="/css/base.css" rel="Stylesheet" />  
     <script type="text/javascript" src="/js/jquery-ui-1.8.23.custom.min.js"></script>
+    <script type="text/javascript" src="/js/dataTable.fnReloadAjax.js"></script>
 
     <script>
     $(document).ready(function($) 
     {
 
-        $('#flowList').dataTable({
+        flowTable = $('#flowList').dataTable({
             "bProcessing": true,
-            "sAjaxSource": 'http://localhost:5656/json/FlowsForLast/1',
+            "sAjaxSource": 'http://localhost:5656/json/FlowsForLast/<%= $timerange %>',
             "bJQueryUI": true,
             "sPaginationType": "full_numbers"
         });
+
+        var myTimer = setInterval('flowTable.fnReloadAjax()', 5000);
 
     });
     
@@ -39,6 +42,7 @@
         <table id="flowList">
             <thead>
                 <tr>
+                    <th>Time</th>
                     <th>Source IP</th>
                     <th>Source Port</th>
                     <th>Dest IP</th>
