@@ -1,0 +1,17 @@
+body {
+    background: url("/img/black_twill.png");
+}
+
+.wrapper {
+    border-radius: 5px;
+    border:1px solid black;
+    background-color: white;
+    margin:10px auto;
+    width:90%;
+    position: relative;
+    padding: 20px;
+}
+
+#flowList {
+    width: 90%;
+}

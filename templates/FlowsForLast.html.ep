@@ -3,38 +3,39 @@
 <head>
     <title>FlowTrack</title>
     <!-- DataTables CSS -->
-    <link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.8.2/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css" />
+        <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables_themeroller.css" />
 
     <!-- jQuery -->
     <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
 
     <!-- DataTables -->
-    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.8.2/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="/js/jquery.dataTables.min.js"></script>
+
+
+    <!-- local stuff -->
+    <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet" />  
+    <link type="text/css" href="/css/base.css" rel="Stylesheet" />  
+    <script type="text/javascript" src="/js/jquery-ui-1.8.23.custom.min.js"></script>
 
     <script>
     $(document).ready(function($) 
     {
+
         $('#flowList').dataTable({
             "bProcessing": true,
             "sAjaxSource": 'http://localhost:5656/json/FlowsForLast/1',
+            "bJQueryUI": true,
+            "sPaginationType": "full_numbers"
         });
 
     });
     
     </script>
-
-
-
 </head>
+
 <body>
-
-
-
-
-
-
-
-    <div>
+    <div class="wrapper">
         <table id="flowList">
             <thead>
                 <tr>
@@ -50,8 +51,6 @@
             </tbody>
         </table>
     </div>
-
-
 </body>
 </html>
 
