@@ -1,59 +1,61 @@
-Flows for last <%= $timerange %>
-Count: <%= scalar(@$flow_struct) %>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>FlowTrack</title>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css" />
+        <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables_themeroller.css" />
+
+    <!-- jQuery -->
+    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
+
+    <!-- DataTables -->
+    <script type="text/javascript" charset="utf8" src="/js/jquery.dataTables.min.js"></script>
 
 
+    <!-- local stuff -->
+    <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet" />  
+    <link type="text/css" href="/css/base.css" rel="Stylesheet" />  
+    <script type="text/javascript" src="/js/jquery-ui-1.8.23.custom.min.js"></script>
+    <script type="text/javascript" src="/js/dataTable.fnReloadAjax.js"></script>
 
-% use Net::IP;
-<table>
-    <tr>
-        <th>
-            Source IP
-        </th>
-        <th>
-            Source Port
-        </th>
+    <script>
+    $(document).ready(function($) 
+    {
 
-        <th>
-            Dest IP
-        </th>
+        flowTable = $('#flowList').dataTable({
+            "bProcessing": true,
+            "sAjaxSource": 'http://localhost:5656/json/FlowsForLast/<%= $timerange %>',
+            "bJQueryUI": true,
+            "sPaginationType": "full_numbers"
+        });
 
-        <th>
-            Dest Port
-        </th>
-        <th>
-            Bytes
-        </th>
-        <th>
-            Packets
-        </th>
-    </tr>
+        var myTimer = setInterval('flowTable.fnReloadAjax()', 5000);
 
+    });
+    
+    </script>
+</head>
 
-    % foreach my $flow (@$flow_struct)
-    % {
-    <tr>
-       <td>
-        %= $flow->{src_ip_obj}->ip();
-    </td>
-    <td>
-        %= $flow->{src_port};
-    </td>
-    <td>
-        %= $flow->{dst_ip_obj}->ip();
-    </td>
-    <td>
-        %= $flow->{dst_port}
-    </td>
-    <td>
-        %= $flow->{bytes}
-    </td>
-    <td>
-        %= $flow->{packets}
-    </td>
-</tr>
-% }
-</table>
-
-
+<body>
+    <div class="wrapper">
+        <table id="flowList">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Source IP</th>
+                    <th>Source Port</th>
+                    <th>Dest IP</th>
+                    <th>Dest Port</th>
+                    <th>Bytes</th>
+                    <th>Packets</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
 
 
