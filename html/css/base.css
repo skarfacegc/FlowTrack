@@ -2,6 +2,11 @@ body {
     background: url("/img/black_twill.png");
 }
 
+dataTables_wrapper {
+    font-size:14px;
+    font-family:Verdana;
+}
+
 .wrapper {
     border-radius: 5px;
     border:1px solid black;

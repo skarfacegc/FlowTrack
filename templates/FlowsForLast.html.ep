@@ -18,17 +18,19 @@
     {
 
         flowTable = $('#flowList').dataTable({
-            "bProcessing": true,
+            "bProcessing" : true,
             "sAjaxSource": 'http://localhost:5656/json/FlowsForLast/<%= $timerange %>',
             "bJQueryUI": true,
             "sPaginationType": "full_numbers",
-            "iDisplayLength": "25",
+            "iDisplayLength": 25,
+            "aaSorting": [[ 0, "desc" ]]
         });
 
-        var myTimer = setInterval('flowTable.fnReloadAjax()', 5000);
+        <!-- Refresh every 30 seconds -->
+        var myTimer = setInterval('flowTable.fnReloadAjax()', 30000);
 
     });
-    
+
     </script>
 </head>
 

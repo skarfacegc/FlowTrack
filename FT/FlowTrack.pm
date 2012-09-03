@@ -1,25 +1,20 @@
 package FT::FlowTrack;
 
 use v5.10;
-
 use Carp;
 use strict;
 use warnings;
-use autodie;
-use Log::Message::Simple qw[:STD :CARP];
 use DBI;
 use Data::Dumper;
 use FT::Schema;
 use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
-
 use vars '$AUTOLOAD';
 
-my $VERBOSE = 1;
 
 # TODO: Move to config file
-my $PURGE   = 120;    # How many seconds to keep raw flow data around.  (i.e. delete everything older than. . . )
+my $PURGE   = 86400;    # How many seconds to keep raw flow data around.  (i.e. delete everything older than. . . )
 
 #
 # Constructor
