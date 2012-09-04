@@ -13,32 +13,31 @@ use Data::Dumper;
 use Net::Flow qw(decode);
 use FT::PacketHandler;
 use FT::FlowTrack;
+use FT::Configuration;
 
 # this is what actually gets us the server
 use base qw(Net::Server::PreFork);
 
-our $PORT             = 2055;
-our $DATAGRAM_LEN     = 1548;
-our $DBNAME           = 'FlowTrack.sqlite';
-our $INTERNAL_NETWORK = '192.168.1.0/24';
-our $DATA_DIR         = './Data';
+# Datagram length should be pretty consistant.
+my $DATAGRAM_LEN = 1548;
 
-our $FT = FT::FlowTrack->new( $DATA_DIR, 1, $DBNAME, $INTERNAL_NETWORK );
-
-
+# Used so we don't reload this thing repeatedly.  Actually loaded in the child_finish_hook
+# only want to load it once though
+my $FT;
 
 #
 # This starts the main flow collection routine
 #
 sub CollectorStart
 {
+    my $config = FT::Configuration::getConf();
     FT::FlowCollector->run(
-                        port         => "*:$PORT/udp",
-                        log_level    => 0,
-                        min_spare_servers => 3,
-                        max_spare_server => 5,
-                        max_servers  => 5,
-                        max_requests => 5,
+                            port              => '*:' . $config->{netflow_port} . '/udp',
+                            log_level         => 0,
+                            min_spare_servers => 3,
+                            max_spare_server  => 5,
+                            max_servers       => 5,
+                            max_requests      => 5,
     );
 }
 
@@ -67,6 +66,13 @@ sub child_finish_hook
     my $self      = shift();
     my $flow_data = $self->{data}{flow_data};
 
+    # Load the FT object if we need to
+    if(!defined $FT)
+    {
+        my $config = FT::Configuration::getConf();
+        $FT = FT::FlowTrack->new( $config->{data_dir}, 1, $config->{dbname}, $config->{internal_network} );
+    }
+    
     carp "Collector Cleanup";
 
     # carp Dumper($self->{data}{flow_data});
@@ -76,7 +82,6 @@ sub child_finish_hook
     # Check to see if anything needs to be purged
     $FT->purgeData();
 }
-
 
 #
 # Cook the data and store it back into $self

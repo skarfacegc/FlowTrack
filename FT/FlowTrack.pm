@@ -5,10 +5,10 @@ use v5.10;
 use Carp;
 use strict;
 use warnings;
-use autodie;
-use Log::Message::Simple qw[:STD :CARP];
+
 use DBI;
 use Data::Dumper;
+use FT::Configuration;
 use FT::Schema;
 use File::Path qw(make_path);
 use Net::IP;
@@ -16,10 +16,6 @@ use Socket;    # For inet_ntoa
 
 use vars '$AUTOLOAD';
 
-my $VERBOSE = 1;
-
-# TODO: Move to config file
-my $PURGE   = 120;    # How many seconds to keep raw flow data around.  (i.e. delete everything older than. . . )
 
 #
 # Constructor
@@ -39,7 +35,7 @@ sub new
     $self->{dbname}           ||= "FlowTrack.sqlite";
     $self->{location}         ||= "Data";
     $self->{debug}            ||= 0;
-    $self->{internal_network} ||= "192.168.1.0/16";
+    $self->{internal_network} ||= "192.168.1.0/24";
 
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
@@ -272,7 +268,9 @@ sub purgeData
     my $self      = shift();
     my $dbh = $self->_initDB();
 
-    my $watermark = time - $PURGE;
+    my $conf = FT::Configuration::getConf();
+
+    my $watermark = time - $conf->{purge_interval};
     my $rows_deleted = 0;
 
     my $sql = qq{
