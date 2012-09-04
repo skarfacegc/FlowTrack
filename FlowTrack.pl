@@ -9,15 +9,17 @@
 #
 # TODO: Daemonize
 # TODO: Check for dead procs
-# TODO: Config file
-# TODO: Make purge interval configurable
+# TODO: Docs
+# TODO: Fix the no-data request in Main.pm  (browser shouldn't hang on no data)
 #
 #
 use strict;
 use warnings;
 use English;
 use Carp;
+use Getopt::Long;
 
+use FT::Configuration;
 use FT::FlowCollector;
 use FT::FlowTrackWeb;
 use Mojo::Server;
@@ -31,6 +33,21 @@ sub main
 {
     my $command_hash;
     my @pids;
+    my $command_line;
+    my $config_file;
+    my $CONFIG;
+
+    # Handle the command line and prime the configuration object
+    # We'll call new on the config object in other places, but 
+    # We don't actually re-read the config file, just get the object back 
+    # yay singletons
+    # 
+    # Defaults to ./flowTrack.conf  (set in the Configuration package)
+    $command_line = GetOptions("config=s" => \$config_file);
+    FT::Configuration::setConf($config_file);
+
+
+
 
     # Here is where we define which routines to fork and run.
     # perhaps a bit of over kill, but seems easier to add and change
@@ -72,7 +89,8 @@ sub startCollector
 # Setups the mojo server.  The application code lives in FlowTrackWeb.pm
 sub startWebserver
 {
-    my $daemon = Mojo::Server::Daemon->new( listen => ['http://*:5656'] );
+    my $config = FT::Configuration::getConf();
+    my $daemon = Mojo::Server::Daemon->new( listen => ['http://*:' . $config->{web_port}] );
     my $app = FT::FlowTrackWeb->new();
     $app->secret('3305CA4A-DE4D-4F34-9A38-F17E0A656A25');
 
