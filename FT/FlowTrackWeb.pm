@@ -2,7 +2,9 @@ package FT::FlowTrackWeb;
 
 use strict;
 use warnings;
+use Log::Log4perl qw(get_logger);
 use Carp;
+
 use Mojo::Base 'Mojolicious';
 use Mojolicious::Static;
 use Data::Dumper;

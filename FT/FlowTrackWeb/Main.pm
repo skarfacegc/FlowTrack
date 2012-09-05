@@ -1,6 +1,7 @@
 package FT::FlowTrackWeb::Main;
 use strict;
 use warnings;
+use Log::Log4perl qw(get_logger);
 use Carp;
 
 use FT::FlowTrack;
