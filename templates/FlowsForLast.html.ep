@@ -19,7 +19,7 @@
 
         flowTable = $('#flowList').dataTable({
             "bProcessing" : true,
-            "sAjaxSource": 'http://localhost:5656/json/FlowsForLast/<%= $timerange %>',
+            "sAjaxSource": '/json/FlowsForLast/<%= $timerange %>',
             "bJQueryUI": true,
             "sPaginationType": "full_numbers",
             "iDisplayLength": 25,

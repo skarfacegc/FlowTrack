@@ -2,7 +2,7 @@ body {
     background: url("/img/black_twill.png");
 }
 
-dataTables_wrapper {
+.dataTables_wrapper {
     font-size:14px;
     font-family:Verdana;
 }
