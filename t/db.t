@@ -1,6 +1,8 @@
 use strict;
 use warnings;
+use Log::Log4perl qw(get_logger);
 use autodie;
+
 use Test::More tests => 16;
 use Data::Dumper;
 use FT::Schema;

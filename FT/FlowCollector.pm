@@ -8,8 +8,11 @@
 package FT::FlowCollector;
 use strict;
 use warnings;
+use Log::Log4perl qw(get_logger);
 use Carp;
+
 use Data::Dumper;
+
 use Net::Flow qw(decode);
 use FT::PacketHandler;
 use FT::FlowTrack;
@@ -65,6 +68,7 @@ sub child_finish_hook
 {
     my $self      = shift();
     my $flow_data = $self->{data}{flow_data};
+    my $logger = get_logger();
 
     # Load the FT object if we need to
     if(!defined $FT)
@@ -73,7 +77,7 @@ sub child_finish_hook
         $FT = FT::FlowTrack->new( $config->{data_dir}, 1, $config->{dbname}, $config->{internal_network} );
     }
     
-    carp "Collector Cleanup";
+    $logger->debug("Collector Cleanup");
 
     # carp Dumper($self->{data}{flow_data});
     $FT->storeFlow($flow_data) if ( defined($flow_data) );
@@ -89,10 +93,11 @@ sub child_finish_hook
 sub process_request
 {
     my $self = shift();
+    my $logger = get_logger();
 
     my $flow_data = FT::PacketHandler::decode_packet( $self->{server}{udp_data} );
 
-    carp "Store Count: " . scalar( @{$flow_data} );
+    $logger->debug("Store Count: " . scalar( @{$flow_data} ));
 
     push( @{ $self->{data}{flow_data} }, @$flow_data );
 

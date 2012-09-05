@@ -3,8 +3,9 @@
 # Migrated from FlowTrack.pl
 package FT::PacketHandler;
 use strict;
-use Carp;
 use warnings;
+use Log::Log4perl qw(get_logger);
+use Carp;
 use Time::HiRes;
 
 #

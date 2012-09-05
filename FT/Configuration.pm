@@ -1,6 +1,8 @@
 package FT::Configuration;
 use strict;
 use warnings;
+use Log::Log4perl qw(get_logger);
+
 use Data::Dumper;
 use Carp;
 use YAML;
@@ -10,16 +12,23 @@ my $oneTrueSelf;
 
 sub setConf
 {
-    if(!defined $oneTrueSelf)
+
+    if ( !defined $oneTrueSelf )
     {
         my $config_file = shift();
         my $config_struct;
         my $ret_struct;
+        my $logger;
 
- 
+        $logger = get_logger();
+
         $config_file = defined($config_file) ? $config_file : "./flowTrack.conf";
 
-        croak "Couldn't read " . $config_file if(!-r $config_file );
+        if ( !-r $config_file )
+        {
+            $logger->fatal("Couldn't read " . $config_file);
+            die;
+        }
 
         $config_struct = YAML::LoadFile($config_file) or croak "Error parsing " . $config_file;
 
@@ -30,10 +39,9 @@ sub setConf
     return $oneTrueSelf;
 }
 
-
 sub getConf
 {
-    if(!defined($oneTrueSelf))
+    if ( !defined($oneTrueSelf) )
     {
         croak "Config not loaded.";
     }

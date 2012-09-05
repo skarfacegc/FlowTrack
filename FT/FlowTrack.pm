@@ -4,6 +4,7 @@ use v5.10;
 use Carp;
 use strict;
 use warnings;
+use Log::Log4perl qw(get_logger);
 
 use DBI;
 use Data::Dumper;
@@ -13,7 +14,6 @@ use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
 use vars '$AUTOLOAD';
-
 
 #
 # Constructor
@@ -58,8 +58,8 @@ sub storeFlow
 {
     my ( $self, $flows ) = @_;
     my $insert_struct;
-
     my $insert_queue;
+    my $logger        = get_logger();
     my $batch_counter = 0;
     my $total_saved   = 0;
     my $batch_size    = 100;
@@ -107,7 +107,7 @@ sub storeFlow
         $total_saved += $rows_saved;
     }
 
-    carp "Saved: $total_saved";
+    $logger->debug("Saved: $total_saved");
     return;
 }
 
@@ -181,7 +181,8 @@ sub getIngressFlowsInTimeRange
 {
     my $self = shift();
     my ( $start_time, $end_time ) = @_;
-    my $dbh = $self->_initDB();
+    my $logger = get_logger();
+    my $dbh    = $self->_initDB();
     my $ret_list;
 
     my $internal_network = new Net::IP( $self->{internal_network} );
@@ -195,14 +196,14 @@ sub getIngressFlowsInTimeRange
         dst_ip BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or croak( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or croak( "failed executing $sql:" . $DBI::errstr );
+      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
 
     while ( my $ref = $sth->fetchrow_hashref )
     {
@@ -230,8 +231,11 @@ sub getEgressFlowsInTimeRange
 {
     my $self = shift();
     my ( $start_time, $end_time ) = @_;
-    my $dbh = $self->_initDB();
+    my $dbh    = $self->_initDB();
+    my $logger = get_logger();
     my $ret_list;
+
+    $logger = get_logger();
 
     my $internal_network = new Net::IP( $self->{internal_network} );
 
@@ -244,14 +248,14 @@ sub getEgressFlowsInTimeRange
         dst_ip NOT BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or croak( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or croak( "failed executing $sql:" . $DBI::errstr );
+      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
 
     while ( my $ref = $sth->fetchrow_hashref )
     {
@@ -263,27 +267,27 @@ sub getEgressFlowsInTimeRange
 
 sub purgeData
 {
-    my $self      = shift();
-    my $dbh = $self->_initDB();
+    my $self   = shift();
+    my $dbh    = $self->_initDB();
+    my $logger = get_logger();
 
     my $conf = FT::Configuration::getConf();
 
-    my $watermark = time - $conf->{purge_interval};
+    my $watermark    = time - $conf->{purge_interval};
     my $rows_deleted = 0;
 
     my $sql = qq{
         DELETE FROM raw_flow WHERE fl_time < ?
     };
 
-    my $sth = $dbh->prepare($sql) or croak( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
 
-    $rows_deleted = $sth->execute($watermark) or carp ("Delete failed: ". $DBI::errstr);
+    $rows_deleted = $sth->execute($watermark) or $logger->fatal( "Delete failed: " . $DBI::errstr );
 
-    carp "Purged: $rows_deleted" if ($rows_deleted > 0);
+    $logger->debug("Purged: $rows_deleted") if ( $rows_deleted > 0 );
 
     return;
 }
-
 
 #
 # This routine cleans up a single FlowRecord (select * from the raw_flow table)
@@ -338,6 +342,7 @@ sub processFlowRecord
 sub _initDB
 {
     my ($self) = @_;
+    my $logger = get_logger();
 
     my $db_name = $self->{dbname};
 
@@ -364,7 +369,8 @@ sub _initDB
         else
         {
 
-            croak( "_initDB failed: $dbfile" . $DBI::errstr );
+            $logger->fatal( "_initDB failed: $dbfile" . $DBI::errstr );
+            die;
         }
     }
 }
@@ -383,6 +389,7 @@ sub _createTables
 {
     my ($self) = @_;
     my $tables = [qw/raw_flow/];
+    my $logger = get_logger();
 
     foreach my $table (@$tables)
     {
@@ -393,7 +400,8 @@ sub _createTables
 
             if ( !defined($sql) || $sql eq "" )
             {
-                croak("Couldn't create SQL statement for $table");
+                $logger->fatal("Couldn't create SQL statement for $table");
+                die;
             }
 
             my $sth = $dbh->prepare($sql);
@@ -401,7 +409,8 @@ sub _createTables
 
             if ( !defined($rv) )
             {
-                croak($DBI::errstr);
+                $logger->fatal($DBI::errstr);
+                die;
             }
         }
     }
@@ -441,7 +450,6 @@ sub _checkDirs
 
     return;
 }
-
 
 #
 # So we can passthrough calls to the Schema routines
