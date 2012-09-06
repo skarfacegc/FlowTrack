@@ -7,15 +7,23 @@
 #
 # For Documentation & License see the README
 #
+# Basic Roadmap
+# -------------
+# TODO: Sane logging
 # TODO: Daemonize
+# TODO: Kill Children on signal
+# TODO: Fix the no-data request in Main.pm  (browser shouldn't hang on no data)
 # TODO: Check for dead procs
 # TODO: Docs
-# TODO: Fix the no-data request in Main.pm  (browser shouldn't hang on no data
-# TODO: Sane loggin
 # TODO: Error Checking config file
-#
-#
-#
+# TODO: Cleanup dead files
+# TODO: ** Release ** 0.01
+# TODO: Deeper server interaction on datatables
+# TODO: Sparkline page
+# TODO: Long term RRD graphs
+# TODO: Add index support to the schema definitions
+# TODO: ** Release ** 0.02
+
 use strict;
 use warnings;
 use Log::Log4perl qw(get_logger);
