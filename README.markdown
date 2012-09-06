@@ -1,9 +1,23 @@
-Next Steps
-----------
-- Cleanup DB schema def
-- Fillout webserver (make it do stuff)
-- collect graphs into RRDs
 
+Basic Roadmap
+-------------
+- ~~Data collection~~
+- ~~Webserver~~
+- ~~Basic list view~~
+- ~~Sane logging~~
+- ~~Daemonize~~
+- Kill Children on signal
+- Fix the no-data request in Main.pm  (browser shouldn't hang on no data)
+- Check for dead procs
+- Docs
+- Error Checking config file
+- Cleanup dead files
+- **Release** 0.01
+- Deeper server interaction on datatables
+- Sparkline page
+- Long term RRD graphs
+- Add index support to the schema definitions
+- **Release** 0.02
 
 
 Start of a netflow and snmp monitoring tool
