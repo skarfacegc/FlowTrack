@@ -19,6 +19,10 @@ Basic Roadmap
 - Add index support to the schema definitions
 - **Release** 0.02
 
+Other Tasks
+-----------
+- Improve test suite (not low priority, just not gating releases)
+
 
 Start of a netflow and snmp monitoring tool
 
