@@ -16,7 +16,7 @@
 # Also has routines to provide an API to access the above.
 
 package FT::Schema;
-use v5.10;
+use feature ':5.10';
 
 use strict;
 use warnings;

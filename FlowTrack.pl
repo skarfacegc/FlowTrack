@@ -97,16 +97,19 @@ sub main
         &{ $command_hash->{$process} };
 
         $logger->info("Exiting: $process ($$)");
-        die;
+        exit;
     }
 
     wait for @pids;
     $logger->debug('fin');
+
+    return;
 }
 
 sub startCollector
 {
     FT::FlowCollector::CollectorStart();
+    return;
 }
 
 # Setups the mojo server.  The application code lives in FlowTrackWeb.pm
@@ -119,6 +122,8 @@ sub startWebserver
     $app->secret('3305CA4A-DE4D-4F34-9A38-F17E0A656A25');
     $daemon->app( FT::FlowTrackWeb->new() );
     $daemon->run();
+
+    return;
 }
 
 # This sub handles running the reports.
@@ -136,4 +141,6 @@ sub runReports
 
         sleep 300;
     }
+
+    return;
 }
