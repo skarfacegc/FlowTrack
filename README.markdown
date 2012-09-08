@@ -6,9 +6,9 @@ Basic Roadmap
 - ~~Basic list view~~
 - ~~Sane logging~~
 - ~~Daemonize~~
-- Kill Children on signal
-- Fix the no-data request in Main.pm  (browser shouldn't hang on no data)
-- Check for dead procs
+- ~~Kill Children on signal~~
+- ~~Fix the no-data request in Main.pm  (browser shouldn't hang on no data)~~
+- ~~Check for dead procs~~
 - Docs
 - Error Checking config file
 - Cleanup dead files
