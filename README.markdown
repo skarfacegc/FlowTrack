@@ -11,7 +11,7 @@ Basic Roadmap
 - ~~Check for dead procs~~
 - Docs
 - Error Checking config file
-- Cleanup dead files
+- ~~Cleanup dead files~~
 - **Release** 0.01
 - Deeper server interaction on datatables
 - Sparkline page
