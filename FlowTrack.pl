@@ -9,14 +9,11 @@
 #
 # Basic Roadmap
 # -------------
-# TODO: Sane logging
-# TODO: Daemonize
-# TODO: Kill Children on signal
 # TODO: Fix the no-data request in Main.pm  (browser shouldn't hang on no data)
-# TODO: Check for dead procs
 # TODO: Docs
 # TODO: Error Checking config file
 # TODO: Cleanup dead files
+# TODO: Cleanup Comments etc.
 # TODO: ** Release ** 0.01
 # TODO: Deeper server interaction on datatables
 # TODO: Sparkline page
@@ -30,6 +27,7 @@ use Log::Log4perl qw(get_logger);
 use English;
 use Carp;
 use Getopt::Long;
+use Data::Dumper;
 
 use FT::Configuration;
 use FT::FlowCollector;
@@ -50,6 +48,9 @@ sub main
     my $command_line;
     my $config_file;
     my $logger;
+
+    # Set to 0 on sigterm
+    my $keepAlive = 1;
 
     # Handle the command line and prime the configuration object
     # We'll call new on the config object in other places, but
@@ -81,8 +82,7 @@ sub main
         exit;
     }
 
-    savePIDFile("main", $$);
-
+ 
     #
     # Signal handlers
     # These could probably be improved, but they seem to work for now.
@@ -95,14 +95,10 @@ sub main
             $kid = waitpid( -1, WNOHANG );
         } while $kid > 0;
 
-        $logger->warn("Child died");
+        $logger->info("Child died");
     };
 
-    local $SIG{TERM} = sub {
-        $logger->warn( "Caught TERM, killing " . join( " ", keys %$children ) );
-        kill( 2, keys %$children );
-        exit;
-    };
+    local $SIG{TERM} = sub { $keepAlive = 0 };
 
     # Here is where we define which routines to fork and run.
     # perhaps a bit of over kill, but seems easier to add and change
@@ -111,32 +107,54 @@ sub main
     $command_hash->{Collector}  = \&startCollector;
     $command_hash->{WebServer}  = \&startWebserver;
 
-    foreach my $process ( keys %$command_hash )
+    while ($keepAlive)
     {
-        my $pid = fork;
-
-        if ($pid)
+        foreach my $process ( keys %$command_hash )
         {
-            $children->{$pid}{$process} = 1;
-            next;
+            # We don't want to fork or try starting the process
+            # if it's already running
+            if ( !isRunning( $process, $children ) )
+            {
+                my $pid = fork;
+
+                if ($pid)
+                {
+                    # Parent
+                    savePIDFile( "main", $$ );
+                    $children->{$pid} = $process;
+                    next;
+                }
+
+                # Child
+                $logger->info("Starting: $process ($PID)");
+
+                savePIDFile( $process, $$ );
+
+                # Run the command
+                &{ $command_hash->{$process} };
+
+                $logger->info("Exiting: $process ($$)");
+                exit;
+            }
+
         }
-
-        #child
-        $logger->info("Starting: $process ($PID)");
-
-        savePIDFile($process, $$);
-
-        # Run the command
-        &{ $command_hash->{$process} };
-
-        $logger->info("Exiting: $process ($$)");
-        exit;
+        sleep 15;
     }
 
-    wait for keys %$children;
-    $logger->debug('fin');
+    #
+    # Cleanup
+    #
+    $logger->info( "Exiting, killing off children " . join( " ", keys %$children ) );
+    kill( 2, keys %$children );
 
-    return;
+    # Remove the pid files
+    removePIDFile('main');
+    foreach my $child ( keys %$children )
+    {
+        removePIDFile( $children->{$child} );
+    }
+
+    exit;
 }
 
 sub startCollector
@@ -160,14 +178,14 @@ sub startWebserver
 }
 
 # This sub handles running the reports.
-# The report loop runs every 5 minutes, on the 5 minute boundry, so at startup we
-# figure out how many seconds it is to the next 5 minute boundry and sleep for that long.
+# The report loop runs every 5 minutes, on the 5 minute boundary, so at startup we
+# figure out how many seconds it is to the next 5 minute boundary and sleep for that long.
 sub runReports
 {
     my $logger = get_logger();
     while (1)
     {
-        # sleep to the next 5 minute boundry
+        # sleep to the next 5 minute boundary
         sleep 300 - ( time % 300 );
 
         $logger->debug('Running report');
@@ -200,3 +218,49 @@ sub savePIDFile
     return;
 }
 
+sub removePIDFile
+{
+    my ($process) = @_;
+    my $config    = FT::Configuration::getConf();
+    my $logger    = get_logger();
+
+    warn "REMOVE!!!";
+
+    my $filename = $config->{pid_files} . "/$process.pid";
+    unlink $filename or $logger->warn("Couldn't remove $filename");
+
+    return;
+}
+
+# Figure out whether a given pid is running
+# This isn't perfect ()
+sub isRunning
+{
+    my ( $process, $children ) = @_;
+
+    my $logger = get_logger();
+
+    foreach my $pid ( keys %$children )
+    {
+        if ( $children->{$pid} eq $process )
+        {
+
+            # Kill 0 should tell us if the process is still running
+            if ( !kill( 0, $pid ) )
+            {
+                $logger->warn("Looks like $process died unexpectedly.");
+                delete $children->{$pid};
+                return 0;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+    }
+
+    # If we get here the process wasn't in the children hash, so we
+    # should assume it's not running
+    return 0;
+
+}
