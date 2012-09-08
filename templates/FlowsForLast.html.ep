@@ -7,8 +7,7 @@
     <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet" />  
     <link type="text/css" href="/css/base.css" rel="Stylesheet" />  
 
-    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
-
+    <script type="text/javascript" charset="utf8" src="/js/jquery-1.8.1.min.js"></script>
     <script type="text/javascript" charset="utf8" src="/js/jquery.dataTables.min.js"></script>
     <script type="text/javascript" src="/js/jquery-ui-1.8.23.custom.min.js"></script>
     <script type="text/javascript" src="/js/dataTable.fnReloadAjax.js"></script>
