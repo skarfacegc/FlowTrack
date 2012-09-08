@@ -1,6 +1,6 @@
 package FT::FlowTrack;
 
-use v5.10;
+use feature ':5.10';
 use Carp;
 use strict;
 use warnings;
@@ -69,11 +69,11 @@ sub storeFlow
 
     my $dbh = $self->_initDB();
 
-    my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
-      VALUES (?,?,?,?,?,?,?) };
+    my $sql =
+      "INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets ) VALUES (?,?,?,?,?,?,?)";
 
     my $sth = $dbh->prepare($sql)
-      or croak( "Coudln't preapre SQL: " . $DBI::errstr );
+      or croak( "Coudln't preapre SQL: " . $dbh->errstr() );
 
     foreach my $flow_rec ( @{$flows} )
     {
@@ -83,8 +83,7 @@ sub storeFlow
         # $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
         #
         # To be used by execute array
-        map { push( @{ $insert_struct->[$batch_counter]{$_} }, $flow_rec->{$_} ); }
-          keys %$flow_rec;
+        push( @{ $insert_struct->[$batch_counter]{$_} }, $flow_rec->{$_} ) for keys %$flow_rec;
 
         $insert_queue++;
         if ( $insert_queue > $batch_size )
@@ -102,7 +101,7 @@ sub storeFlow
                                { ArrayTupleStatus => \@tuple_status },
                                $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip}, $batch->{src_port},
                                $batch->{dst_port}, $batch->{bytes},  $batch->{packets}
-          ) or croak( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $DBI::errstr );
+          ) or croak( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
 
         $total_saved += $rows_saved;
     }
@@ -185,7 +184,7 @@ sub getIngressFlowsInTimeRange
     my $dbh    = $self->_initDB();
     my $ret_list;
 
-    my $internal_network = new Net::IP( $self->{internal_network} );
+    my $internal_network = Net::IP->new( $self->{internal_network} );
 
     my $sql = qq{
         SELECT * FROM raw_flow WHERE 
@@ -237,7 +236,7 @@ sub getEgressFlowsInTimeRange
 
     $logger = get_logger();
 
-    my $internal_network = new Net::IP( $self->{internal_network} );
+    my $internal_network = Net::IP->new( $self->{internal_network} );
 
     my $sql = qq{
         SELECT * FROM raw_flow WHERE 
@@ -313,7 +312,7 @@ sub processFlowRecord
             {
                 $ret_struct->{$key} = $flow_record->{$key};
                 $ret_struct->{ $key . "_obj" } =
-                  new Net::IP( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
+                  Net::IP->new( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
             }
 
             # if we don't do anything else, just copy the data
@@ -368,9 +367,8 @@ sub _initDB
         }
         else
         {
-
             $logger->fatal( "_initDB failed: $dbfile" . $DBI::errstr );
-            die;
+            croak;
         }
     }
 }

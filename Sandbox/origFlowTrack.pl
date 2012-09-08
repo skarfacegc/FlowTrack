@@ -3,6 +3,7 @@
 # POC Code, getting the flow listener working.  Ultimately this won't be used, just keeping here for reference.
 
 use strict;
+use warnings;
 use Net::Flow qw(decode);
 use IO::Socket::INET;
 use Data::Dumper;
@@ -37,6 +38,7 @@ sub main
 
         storeFlow($FlowArrayRef);
     }
+    return;
 }
 
 # { 'Length'=>4,'Id'=>8  }, # SRC_ADDR
@@ -78,6 +80,7 @@ sub storeFlow
         my $tmp_ip = getIP( $flow->{'8'} );
         print $src . " " . $tmp_ip->ip() . "\n";
     }
+    return;
 }
 
 sub getIP
@@ -85,7 +88,7 @@ sub getIP
     my $raw_ip = shift();
     my $ip;
 
-    $ip = new Net::IP( inet_ntoa($raw_ip) ) || die "Couldn't create net object";
+    $ip = Net::IP->new( inet_ntoa($raw_ip) ) || die "Couldn't create net object";
 
     return $ip;
 }
