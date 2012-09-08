@@ -34,6 +34,7 @@ use Getopt::Long;
 use FT::Configuration;
 use FT::FlowCollector;
 use FT::FlowTrackWeb;
+use POSIX ":sys_wait_h";
 use Mojo::Server;
 use Mojo::Server::Daemon;
 use Mojolicious::Commands;
@@ -45,7 +46,7 @@ main();
 sub main
 {
     my $command_hash;
-    my @pids;
+    my $children;
     my $command_line;
     my $config_file;
     my $logger;
@@ -68,14 +69,45 @@ sub main
         Log::Log4perl->init( $config->{logging_conf} );
         $logger = get_logger();
         $logger->debug("Loaded l4p configuration");
-
     }
+
+
+    # Daemonize ourself
+    if (fork)
+    {
+        # Original process
+        close(STDOUT);
+        close(STDIN);
+        close(STDERR);
+        exit;
+    }
+
+    #
+    # Signal handlers
+    # These could probably be improved, but they seem to work for now.
+    #
+    local $SIG{CHLD} = sub {
+        my $kid;
+
+        do
+        {
+            $kid = waitpid( -1, WNOHANG );
+        } while $kid > 0;
+
+        $logger->warn("Child died");
+    };
+
+    local $SIG{TERM} = sub {
+        $logger->warn( "Caught TERM, killing " . join( " ", keys %$children ) );
+        kill( 2, keys %$children );
+        exit;
+    };
 
     # Here is where we define which routines to fork and run.
     # perhaps a bit of over kill, but seems easier to add and change
     # stuff this way.
-    $command_hash->{Collector}  = \&startCollector;
     $command_hash->{runReports} = \&runReports;
+    $command_hash->{Collector}  = \&startCollector;
     $command_hash->{WebServer}  = \&startWebserver;
 
     foreach my $process ( keys %$command_hash )
@@ -85,8 +117,7 @@ sub main
 
         if ($pid)
         {
-            #parent
-            push @pids, $pid;
+            $children->{$pid}{$process} = 1;
             next;
         }
 
@@ -100,7 +131,7 @@ sub main
         die;
     }
 
-    wait for @pids;
+    wait for keys %$children;
     $logger->debug('fin');
 }
 
@@ -115,7 +146,7 @@ sub startWebserver
     my $config = FT::Configuration::getConf();
     my $daemon = Mojo::Server::Daemon->new( listen => [ 'http://*:' . $config->{web_port} ] );
     my $app    = FT::FlowTrackWeb->new();
-    
+
     $app->secret('3305CA4A-DE4D-4F34-9A38-F17E0A656A25');
     $daemon->app( FT::FlowTrackWeb->new() );
     $daemon->run();
@@ -136,4 +167,14 @@ sub runReports
 
         sleep 300;
     }
+}
+
+#
+# Installs the TERM and CHLD signal handlers
+# just here to get them out of mainline code
+#
+sub installSignalHandlers
+{
+    my $logger = get_logger();
+
 }
