@@ -224,8 +224,6 @@ sub removePIDFile
     my $config    = FT::Configuration::getConf();
     my $logger    = get_logger();
 
-    warn "REMOVE!!!";
-
     my $filename = $config->{pid_files} . "/$process.pid";
     unlink $filename or $logger->warn("Couldn't remove $filename");
 
