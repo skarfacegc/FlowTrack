@@ -50,25 +50,30 @@ sub simpleFlowsJSON
 
     my $ret_struct = {
                        sEcho               => 3,
-                       iTotalRecords       => scalar @$flow_struct,
-                       iTotalDisplayRecors => scalar @$flow_struct,
+                       iTotalRecords       => defined($flow_struct) ? scalar @$flow_struct : 0,
+                       iTotalDisplayRecors => defined($flow_struct) ? scalar @$flow_struct : 0,
                        aaData              => [],
     };
 
-    # Now we populate aaData
-    foreach my $flow (@$flow_struct)
+    # Don't try to construct aaData if we don't have data
+    if(defined($flow_struct))
     {
-        my ( $time, $microsecs ) = split( /\./, $flow->{fl_time} );
-        my $timestamp = strftime( "%r", localtime($time) );
-
-        my $row_struct = [
-                           $timestamp,        $flow->{src_ip_obj}->ip(), $flow->{src_port}, $flow->{dst_ip_obj}->ip(),
-                           $flow->{dst_port}, $flow->{bytes},            $flow->{packets}
-        ];
-
-        push( @{ $ret_struct->{aaData} }, $row_struct );
+        # Now we populate aaData
+        foreach my $flow (@$flow_struct)
+        {
+            my ( $time, $microsecs ) = split( /\./, $flow->{fl_time} );
+            my $timestamp = strftime( "%r", localtime($time) );
+    
+            my $row_struct = [
+                               $timestamp,        $flow->{src_ip_obj}->ip(), $flow->{src_port}, $flow->{dst_ip_obj}->ip(),
+                               $flow->{dst_port}, $flow->{bytes},            $flow->{packets}
+            ];
+    
+            push( @{ $ret_struct->{aaData} }, $row_struct );
+        }
+    
+    
     }
-
 
     $self->render( { json => $ret_struct } );
 
