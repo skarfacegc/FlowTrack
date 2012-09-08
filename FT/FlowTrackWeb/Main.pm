@@ -17,11 +17,13 @@ our $DATA_DIR         = './Data';
 
 our $FT = FT::FlowTrack->new( $DATA_DIR, 1, $DBNAME, $INTERNAL_NETWORK );
 
-sub index
+sub indexPage
 {
     my $self = shift();
 
     $self->render( template => 'index' );
+
+    return;
 }
 
 sub simpleFlows
@@ -34,11 +36,14 @@ sub simpleFlows
     $self->stash( timerange   => $timerange );
 
     $self->render( template => 'FlowsForLast' );
+
+    return;
 }
 
 sub simpleFlowsJSON
 {
     my $self = shift();
+    my $logger = get_logger();
 
     my ($timerange) = $self->param('timerange');
     my $flow_struct = $FT->getFlowsForLast($timerange);
@@ -64,6 +69,9 @@ sub simpleFlowsJSON
         push( @{ $ret_struct->{aaData} }, $row_struct );
     }
 
+
     $self->render( { json => $ret_struct } );
+
+    return;
 }
 1;
