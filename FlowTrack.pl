@@ -71,7 +71,6 @@ sub main
         $logger->debug("Loaded l4p configuration");
     }
 
-
     # Daemonize ourself
     if (fork)
     {
@@ -81,6 +80,8 @@ sub main
         close(STDERR);
         exit;
     }
+
+    savePIDFile("main", $$);
 
     #
     # Signal handlers
@@ -112,7 +113,6 @@ sub main
 
     foreach my $process ( keys %$command_hash )
     {
-
         my $pid = fork;
 
         if ($pid)
@@ -123,6 +123,8 @@ sub main
 
         #child
         $logger->info("Starting: $process ($PID)");
+
+        savePIDFile($process, $$);
 
         # Run the command
         &{ $command_hash->{$process} };
@@ -176,12 +178,25 @@ sub runReports
     return;
 }
 
-#
-# Installs the TERM and CHLD signal handlers
-# just here to get them out of mainline code
-#
-sub installSignalHandlers
+sub savePIDFile
 {
+    my ( $process, $pid ) = @_;
+    my $config = FT::Configuration::getConf();
     my $logger = get_logger();
 
+    if ( -w $config->{pid_files} )
+    {
+        open( my $fh, ">", $config->{pid_files} . "/$process.pid" )
+          || croak "Couldn't open " . $config->{pid_files} . "/$process.pid: $!";
+        print $fh "$pid\n";
+        close($fh);
+
+    }
+    else
+    {
+        croak $config->{pid_files} . " is either missing or not writable";
+    }
+
+    return;
 }
+
