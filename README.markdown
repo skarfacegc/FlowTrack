@@ -113,7 +113,7 @@ Libraries Used
 Planned Roadmap
 ----------------
 
-- Release 0.0.1
+- **Release 0.0.1 09|09|2012**
     - ~~Data collection~~
     - ~~Webserver~~
     - ~~Basic list view~~
@@ -122,9 +122,10 @@ Planned Roadmap
     - ~~Kill Children on signal~~
     - ~~Fix the no-data request in Main.pm  (browser shouldn't hang on no data)~~
     - ~~Check for dead procs~~
-    - Docs
+    - ~~Docs~~
     - ~~Cleanup dead files~~
-- Release 0.0.2    
+- Release 0.0.2
+    - move database code from FlowTrack.pm
     - Error Checking config file
     - Web Auth
     - Deeper server interaction on datatables

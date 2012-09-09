@@ -33,35 +33,40 @@ use FT::FlowTrackWeb;
 use POSIX ":sys_wait_h";
 use Mojo::Server;
 use Mojo::Server::Daemon;
-use Mojolicious::Commands;
 
 
-# Loop and fork!
+# get things started.  Init configs/loops etc. Starts all the processes.
 main();
-
 sub main
 {
     my $command_hash;
     my $children;
     my $command_line;
     my $config_file;
+    my $printHelp;
     my $logger;
 
     # Set to 0 on sigterm
     my $keepAlive = 1;
 
-    # Handle the command line and prime the configuration object
-    # We'll call new on the config object in other places, but
-    # We don't actually re-read the config file, just get the object back
-    # yay singletons
-    #
-    # Defaults to ./flowTrack.conf  (set in the Configuration package)
+    # handle the command line
     $command_line = GetOptions( "config=s" => \$config_file );
+
+    # Mojolicious consumes --help and -h off of @ARGV making it hard
+    # to use getopt properly.  HOWEVER, it does set MOJO_HELP.  We'll use
+    # that.  Still kinda dumb though.
+    if ( $ENV{MOJO_HELP} )
+    {
+        print "\t--help\t\t\t This message\n";
+        print "\t--config=flowTrack.conf\t Location of config file (defaults to ./flowTrack.conf)\n";
+
+        exit;
+    }
+
+    # init the config file
     FT::Configuration::setConf($config_file);
 
-    #
     # Init our log4perl configuration.
-    #
     my $config = FT::Configuration::getConf();
     if ( exists $config->{logging_conf} && -r $config->{logging_conf} )
     {
@@ -70,6 +75,11 @@ sub main
         $logger->debug("Loaded l4p configuration");
     }
 
+
+    # 
+    # Start launching processes
+    #
+   
     # Daemonize ourself
     if (fork)
     {
@@ -80,7 +90,6 @@ sub main
         exit;
     }
 
- 
     #
     # Signal handlers
     # These could probably be improved, but they seem to work for now.
@@ -118,7 +127,13 @@ sub main
                 if ($pid)
                 {
                     # Parent
+
+                    # save our pid file
                     savePIDFile( "main", $$ );
+
+                    # Add the child to the children hash
+                    # this is used to keep track of who's running or not
+                    # (as well as who to kill in cleanup)
                     $children->{$pid} = $process;
                     next;
                 }
@@ -126,16 +141,21 @@ sub main
                 # Child
                 $logger->info("Starting: $process ($PID)");
 
+                # Save the pidfile for the process
                 savePIDFile( $process, $$ );
 
                 # Run the command
                 &{ $command_hash->{$process} };
 
+                # Likely that the below will never get called
                 $logger->info("Exiting: $process ($$)");
                 exit;
             }
 
         }
+
+        # Pause a bit before we go back through the loop
+        # the signals will wake us up though.
         sleep 15;
     }
 
@@ -155,6 +175,9 @@ sub main
     exit;
 }
 
+
+# This is the bit that actually does the flow collection
+# is just a net::server listener
 sub startCollector
 {
     FT::FlowCollector::CollectorStart();
@@ -178,6 +201,9 @@ sub startWebserver
 # This sub handles running the reports.
 # The report loop runs every 5 minutes, on the 5 minute boundary, so at startup we
 # figure out how many seconds it is to the next 5 minute boundary and sleep for that long.
+#
+# Reports don't do anything right now.  Will update RRDs consolidate stats etc at a later point
+# in time.
 sub runReports
 {
     my $logger = get_logger();
@@ -194,6 +220,8 @@ sub runReports
     return;
 }
 
+
+# Writes out pid files
 sub savePIDFile
 {
     my ( $process, $pid ) = @_;
@@ -216,6 +244,8 @@ sub savePIDFile
     return;
 }
 
+
+# Removes the pid files
 sub removePIDFile
 {
     my ($process) = @_;

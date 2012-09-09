@@ -27,7 +27,7 @@ sub setConf
         if ( !-r $config_file )
         {
             $logger->fatal("Couldn't read " . $config_file);
-            die;
+            die "Couldn't read " . $config_file;
         }
 
         $config_struct = YAML::LoadFile($config_file) or croak "Error parsing " . $config_file;
