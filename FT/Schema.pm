@@ -16,9 +16,13 @@
 # Also has routines to provide an API to access the above.
 
 package FT::Schema;
+use feature ':5.10';
+
 use strict;
 use warnings;
-use v5.10;
+use Log::Log4perl qw(get_logger);
+use Carp;
+
 use Data::Dumper;
 
 use vars '$TABLES';

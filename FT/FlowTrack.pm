@@ -1,22 +1,19 @@
 package FT::FlowTrack;
 
-use v5.10;
-
+use feature ':5.10';
 use Carp;
 use strict;
 use warnings;
-use autodie;
-use Log::Message::Simple qw[:STD :CARP];
+use Log::Log4perl qw(get_logger);
+
 use DBI;
 use Data::Dumper;
+use FT::Configuration;
 use FT::Schema;
 use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
-
 use vars '$AUTOLOAD';
-
-my $VERBOSE = 1;
 
 #
 # Constructor
@@ -36,18 +33,16 @@ sub new
     $self->{dbname}           ||= "FlowTrack.sqlite";
     $self->{location}         ||= "Data";
     $self->{debug}            ||= 0;
-    $self->{internal_network} ||= "192.168.1.0/16";
+    $self->{internal_network} ||= "192.168.1.0/24";
 
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
     $self->{dbh}                = {};
-    
 
     bless( $self, $class );
-    
-    $self->{dbh} = $self->_initDB();  
-    $self->_createTables();
 
+    $self->{dbh} = $self->_initDB();
+    $self->_createTables();
 
     return $self;
 }
@@ -63,8 +58,8 @@ sub storeFlow
 {
     my ( $self, $flows ) = @_;
     my $insert_struct;
-
     my $insert_queue;
+    my $logger        = get_logger();
     my $batch_counter = 0;
     my $total_saved   = 0;
     my $batch_size    = 100;
@@ -74,11 +69,11 @@ sub storeFlow
 
     my $dbh = $self->_initDB();
 
-    my $sql = qq{ INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets )
-      VALUES (?,?,?,?,?,?,?) };
+    my $sql =
+      "INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets ) VALUES (?,?,?,?,?,?,?)";
 
     my $sth = $dbh->prepare($sql)
-      or croak( "Coudln't preapre SQL: " . $DBI::errstr );
+      or croak( "Coudln't preapre SQL: " . $dbh->errstr() );
 
     foreach my $flow_rec ( @{$flows} )
     {
@@ -88,8 +83,7 @@ sub storeFlow
         # $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
         #
         # To be used by execute array
-        map { push( @{ $insert_struct->[$batch_counter]{$_} }, $flow_rec->{$_} ); }
-          keys %$flow_rec;
+        push( @{ $insert_struct->[$batch_counter]{$_} }, $flow_rec->{$_} ) for keys %$flow_rec;
 
         $insert_queue++;
         if ( $insert_queue > $batch_size )
@@ -107,12 +101,12 @@ sub storeFlow
                                { ArrayTupleStatus => \@tuple_status },
                                $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip}, $batch->{src_port},
                                $batch->{dst_port}, $batch->{bytes},  $batch->{packets}
-          ) or croak( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $DBI::errstr );
+          ) or croak( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
 
         $total_saved += $rows_saved;
     }
 
-    carp "Saved: $total_saved";
+    $logger->debug("Saved: $total_saved");
     return;
 }
 
@@ -186,10 +180,11 @@ sub getIngressFlowsInTimeRange
 {
     my $self = shift();
     my ( $start_time, $end_time ) = @_;
-    my $dbh = $self->_initDB();
+    my $logger = get_logger();
+    my $dbh    = $self->_initDB();
     my $ret_list;
 
-    my $internal_network = new Net::IP( $self->{internal_network} );
+    my $internal_network = Net::IP->new( $self->{internal_network} );
 
     my $sql = qq{
         SELECT * FROM raw_flow WHERE 
@@ -200,14 +195,14 @@ sub getIngressFlowsInTimeRange
         dst_ip BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or croak( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or croak( "failed executing $sql:" . $DBI::errstr );
+      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
 
     while ( my $ref = $sth->fetchrow_hashref )
     {
@@ -235,10 +230,13 @@ sub getEgressFlowsInTimeRange
 {
     my $self = shift();
     my ( $start_time, $end_time ) = @_;
-    my $dbh = $self->_initDB();
+    my $dbh    = $self->_initDB();
+    my $logger = get_logger();
     my $ret_list;
 
-    my $internal_network = new Net::IP( $self->{internal_network} );
+    $logger = get_logger();
+
+    my $internal_network = Net::IP->new( $self->{internal_network} );
 
     my $sql = qq{
         SELECT * FROM raw_flow WHERE 
@@ -249,14 +247,14 @@ sub getEgressFlowsInTimeRange
         dst_ip NOT BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or croak( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or croak( "failed executing $sql:" . $DBI::errstr );
+      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
 
     while ( my $ref = $sth->fetchrow_hashref )
     {
@@ -264,6 +262,30 @@ sub getEgressFlowsInTimeRange
     }
 
     return $ret_list;
+}
+
+sub purgeData
+{
+    my $self   = shift();
+    my $dbh    = $self->_initDB();
+    my $logger = get_logger();
+
+    my $conf = FT::Configuration::getConf();
+
+    my $watermark    = time - $conf->{purge_interval};
+    my $rows_deleted = 0;
+
+    my $sql = qq{
+        DELETE FROM raw_flow WHERE fl_time < ?
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
+
+    $rows_deleted = $sth->execute($watermark) or $logger->fatal( "Delete failed: " . $DBI::errstr );
+
+    $logger->debug("Purged: $rows_deleted") if ( $rows_deleted > 0 );
+
+    return;
 }
 
 #
@@ -284,11 +306,13 @@ sub processFlowRecord
         {
 
             #IP Addresses
+            # Want to leave the original address there as well, in case we can't
+            # get to the object
             when (/_ip$/)
             {
-                $ret_struct->{ $key } = $flow_record->{$key};
+                $ret_struct->{$key} = $flow_record->{$key};
                 $ret_struct->{ $key . "_obj" } =
-                  new Net::IP( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
+                  Net::IP->new( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
             }
 
             # if we don't do anything else, just copy the data
@@ -317,6 +341,7 @@ sub processFlowRecord
 sub _initDB
 {
     my ($self) = @_;
+    my $logger = get_logger();
 
     my $db_name = $self->{dbname};
 
@@ -342,8 +367,8 @@ sub _initDB
         }
         else
         {
-
-            croak( "_initDB failed: $dbfile" . $DBI::errstr );
+            $logger->fatal( "_initDB failed: $dbfile" . $DBI::errstr );
+            croak;
         }
     }
 }
@@ -362,6 +387,7 @@ sub _createTables
 {
     my ($self) = @_;
     my $tables = [qw/raw_flow/];
+    my $logger = get_logger();
 
     foreach my $table (@$tables)
     {
@@ -372,7 +398,8 @@ sub _createTables
 
             if ( !defined($sql) || $sql eq "" )
             {
-                croak("Couldn't create SQL statement for $table");
+                $logger->fatal("Couldn't create SQL statement for $table");
+                die;
             }
 
             my $sth = $dbh->prepare($sql);
@@ -380,7 +407,8 @@ sub _createTables
 
             if ( !defined($rv) )
             {
-                croak($DBI::errstr);
+                $logger->fatal($DBI::errstr);
+                die;
             }
         }
     }
@@ -420,7 +448,6 @@ sub _checkDirs
 
     return;
 }
-
 
 #
 # So we can passthrough calls to the Schema routines

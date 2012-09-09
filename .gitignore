@@ -6,3 +6,4 @@ TAGS
 *.sqlite
 portlist.xml
 Data/
+.perlcriticrc
