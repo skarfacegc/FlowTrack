@@ -92,12 +92,13 @@ The following URLs do things:
   - Raw data for the above
 
 ### <a id="tuning"></a>Tuning
-You can tune the collector pool by twiddling these values in [FT/FlowCollector.pm](FT/FlowCollector.pm)
+You can tune the collector pool by twiddling these values in **FT/FlowCollector.pm**
+```perl
     min_spare_servers => 3,
     max_spare_server  => 5,
     max_servers       => 5,
     max_requests      => 5,
-
+```
 <a id="Release Notes"></a>Release Notes
 --------------
 0.0.1
