@@ -28,14 +28,14 @@ I'd love to know if you're using it.  Open bugs/enhancements/etc here.
 ### <a id="Requirements"></a>Requirements
 (I will likely add new stuff to this list, such as rrdtool):
 - Perl 5.10+  (tested on 5.16.1)
-  - Mojolicious
-  - Net::Server
-  - Log::Log4perl
-  - YAML
-  - DBI
-  - DBD::SQLite
-  - Net::Flow
-  - Net::IP
+    - Mojolicious
+    - Net::Server
+    - Log::Log4perl
+    - YAML
+    - DBI
+    - DBD::SQLite
+    - Net::Flow
+    - Net::IP
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
 
@@ -84,17 +84,12 @@ Logging is configured in flowTrackLog.conf Defaults to logging in ./log
 Point your browser at [http://localhost:5656/](http://localhost:5656/)
 The following URLs do things:
 
-- [http://localhost:5656/](http://locallhost:5656/) 
-
-    - This is the main page  (currently points to /FlowsForLast/1)
-
-- [http://localhost:5656/FlowsForLast/1](http://localhost:5656/FlowsForLast/1) 
-
-    - Shows flows for the last 1 minute.  Change the 1 to another number to expand your time range.
-
-- [http://localhost:5656/json/FlowsForLast/1](http://localhost:5656/json/FlowsForLast/1)
-
-    - Raw data for the above
+- [http://localhost:5656/](http://locallhost:5656/) <br>
+   This is the main page  (currently points to /FlowsForLast/1)
+- [http://localhost:5656/FlowsForLast/1](http://localhost:5656/FlowsForLast/1) <br>
+   Shows flows for the last 1 minute.  Change the 1 to another number to expand your time range.
+- [http://localhost:5656/json/FlowsForLast/1](http://localhost:5656/json/FlowsForLast/1)<br>
+   Raw data for the above
 
 ### <a id="tuning"></a>Tuning
 You can tune the collector pool by twiddling these values in **FT/FlowCollector.pm**
