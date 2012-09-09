@@ -9,12 +9,10 @@
 #
 # Basic Roadmap
 # -------------
-# TODO: Fix the no-data request in Main.pm  (browser shouldn't hang on no data)
 # TODO: Docs
-# TODO: Error Checking config file
-# TODO: Cleanup dead files
 # TODO: Cleanup Comments etc.
 # TODO: ** Release ** 0.01
+# TODO: Error Checking config file
 # TODO: Deeper server interaction on datatables
 # TODO: Sparkline page
 # TODO: Long term RRD graphs
