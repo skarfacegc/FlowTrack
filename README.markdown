@@ -124,7 +124,8 @@ Planned Roadmap
     - ~~Check for dead procs~~
     - ~~Docs~~
     - ~~Cleanup dead files~~
-- Release 0.0.2    
+- Release 0.0.2
+    - move database code from FlowTrack.pm
     - Error Checking config file
     - Web Auth
     - Deeper server interaction on datatables
