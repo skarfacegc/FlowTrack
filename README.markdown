@@ -1,67 +1,175 @@
-
-Basic Roadmap
--------------
-- ~~Data collection~~
-- ~~Webserver~~
-- ~~Basic list view~~
-- ~~Sane logging~~
-- ~~Daemonize~~
-- ~~Kill Children on signal~~
-- ~~Fix the no-data request in Main.pm  (browser shouldn't hang on no data)~~
-- ~~Check for dead procs~~
-- Docs
-- Error Checking config file
-- ~~Cleanup dead files~~
-- **Release** 0.01
-- Deeper server interaction on datatables
-- Sparkline page
-- Long term RRD graphs
-- Add index support to the schema definitions
-- **Release** 0.02
-
-Other Tasks
------------
-- Improve test suite (not low priority, just not gating releases)
+- [About](#about)
+- [Installation and Use](#InstallationUse)
+  - [Requirements](#Requirements)
+  - [Installing](#Installing)
+  - [Configuration](#Configuration)
+  - [URLs](#URLs)
+- [Release Notes](#Release Notes)
+- [Libraries Used](#3rdParty)
+- [Planned Roadmap](#Planned Roadmap)
+- [License](#License)
 
 
-Start of a netflow and snmp monitoring tool
+<a id="About"></a>About
+-----
+FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
+possible.  There's no need to configure an external webserver or database.  When you run FlowTracker a small 
+webserver is started, and a netflow collector is started.
 
-Designed for use on a small/home network.  Testing against dd-wrt
+Initially I'm focusing on feature set and simplicity of installation.  Scalability is a secondary concern right now.
+I'm testing with very light traffic.  In otherwords, this will likely melt under high load.  If you do try running this
+under high load, let me know how it goes. 
 
-Got a prototype mostly working (at least for collection).  Performance
-could be better, and the code is fairly nasty in places (full of
-experimentation).  That is the state of the master branch.  Collects,
-and pushes into a database.
+I'd love to know if you're using it.  Open bugs/enhancements/etc here.
 
-I'm currently working in the cleanup branch.  Making the database
-access saner, cleaning up some nasty bits, etc.  So far
+<a id="InstallationUse"></a>Installation & Use
+------------------
 
-- Basic test module (t/selftest.pl)
-- Cleaned up some of the DB code (still in progress)
-  - Big thing was the insert loop.
-- Some directory structure cleanup
+### <a id="Requirements"></a>Requirements
+(I will likely add new stuff to this list, such as rrdtool):
+- Perl 5.10+  (tested on 5.16.1)
+  - Mojolicious
+  - Net::Server
+  - Log::Log4perl
+  - YAML
+  - DBI
+  - DBD::SQLite
+  - Net::Flow
+  - Net::IP
+- Something to send you v5 netflow data (rflowd on dd-wrt works great!)
+- a working SQLite installation
 
-I've been using flow-tools for testing.  Haven't figured out how to
-send a sustained flows per second to do actual performance
-measurement.  (short of looping small flow-gen batches)
+### <a id="Installing"></a>Installing
+I'd recommend cloning the repository
 
-Installation
-------------
-You'll need the following perl modules:
+    git clone git://github.com/skarfacegc/FlowTrack.git
 
-- Net::Server
-- Mojolicious
-- Net::Flow
-- Net::IP
-- Log::Message::Simple (May not need this one any more)
-- DBD::SQLite
- 
-Running
+### <a id="Configuration"></a>Configuration
+**flowTrack.conf**
+
+    # Port to read for netflow
+    netflow_port: 2055
+
+    # Name of the database
+    database_name: FlowTrack.sqlite
+
+    # What do you consider your internal network
+    # Not used in version 0.01  Will be used to determine ingress/egress
+    internal_network: 192.168.1.0/24
+
+    # Where to write data (database/logs/etc)
+    data_dir: ./Data
+
+    # How many seconds to keep raw flows around
+    # Defaults to a half day
+    purge_interval: 43200
+
+    # Port for the webserver
+    web_port: 5656
+
+    # Log4Perl Configuration file
+    logging_conf: flowTrackLog.conf
+
+    # Location of pid files
+    pid_files: ./log
+
+Run FlowTrack.pl
+
+    ./FlowTrack.pl [--config=/location/of/config/file.conf]
+
+Logging is configured in flowTrackLog.conf Defaults to logging in ./log
+
+
+### <a id="URLs"></a>URLs
+Point your browser at [http://localhost:5656/](http://localhost:5656/)
+The following URLs do things:
+
+- [http://localhost:5656/](http://locallhost:5656/) 
+  - This is the main page  (currently points to /FlowsForLast/1)
+- [http://localhost:5656/FlowsForLast/1](http://localhost:5656/FlowsForLast/1) 
+  - Shows flows for the last 1 minute.  Change the 1 to another number to expand your time range.
+- [http://localhost:5656/json/FlowsForLast/1](http://localhost:5656/json/FlowsForLast/1)
+  - Raw data for the above
+
+### <a id="tuning"></a>Tuning
+You can tune the collector pool by twiddling these values in [FT/FlowCollector.pm](FT/FlowCollector.pm)
+    min_spare_servers => 3,
+    max_spare_server  => 5,
+    max_servers       => 5,
+    max_requests      => 5,
+
+<a id="Release Notes"></a>Release Notes
+--------------
+0.0.1
+- Initial release.
+- Major components work
+  - Collector
+  - Webserver
+- Single table view of recent flows (no graphs etc)
+
+
+<a id="3rdParty"></a>Libraries Used
+-------------------------
+
+- [Net::Server](http://search.cpan.org/~rhandom/Net-Server-2.006/lib/Net/Server.pod) - handles the collection loop
+- [log4perl](http://mschilli.github.com/log4perl/) - An excellent log4j style system for perl
+- [Mojolicious](http://mojolicio.us/) - webserver and web framework
+- [JQuery](http://jquery.com/) - JS Framework
+- [DataTables](http://datatables.net/) - Table Viewer
+- [SQLite](http://www.sqlite.org/) - SQLite for the database
+
+<a id="Planned Roadmap"></a>Planned Roadmap
+----------------
+
+- Release 0.0.1
+  - ~~Data collection~~
+  - ~~Webserver~~
+  - ~~Basic list view~~
+  - ~~Sane logging~~
+  - ~~Daemonize~~
+  - ~~Kill Children on signal~~
+  - ~~Fix the no-data request in Main.pm  (browser shouldn't hang on no data)~~
+  - ~~Check for dead procs~~
+  - Docs
+  - ~~Cleanup dead files~~
+- Release 0.0.2    
+  - Error Checking config file
+  - Web Auth
+  - Deeper server interaction on datatables
+  - Sparkline page
+  - Long term RRD graphs
+  - Add index support to the schema definitions
+
+
+
+<a id="License"></a>License
 -------
-1. Download the zip.  
-2. Run FlowTrack.pl  
-3. Send flows to port 2055
-4. Flows get written to FlowTrack.sqlite in the directory where you ran FlowTrack.pl
+     Copyright (c) 2012, andrew@manor.org
+     All rights reserved.
+     
+     Redistribution and use in source and binary forms, with or without
+     modification, are permitted provided that the following conditions are met: 
+     
+     1. Redistributions of source code must retain the above copyright notice, this
+        list of conditions and the following disclaimer. 
+     2. Redistributions in binary form must reproduce the above copyright notice,
+        this list of conditions and the following disclaimer in the documentation
+        and/or other materials provided with the distribution. 
+     
+     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+     ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+     WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+     ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+     (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+     ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+     
+     The views and conclusions contained in the software and documentation are those
+     of the authors and should not be interpreted as representing official policies, 
+     either expressed or implied, of the FreeBSD Project.
 
 
 
