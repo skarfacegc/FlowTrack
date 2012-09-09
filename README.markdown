@@ -1,4 +1,3 @@
-
 About
 -----
 FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
@@ -29,7 +28,7 @@ Installation & Use
 - a working SQLite installation
 
 ### Installing
-I'd recommend cloning the repository
+I recommend cloning the repository to make getting updates etc. easier.
 
     git clone git://github.com/skarfacegc/FlowTrack.git
 
@@ -124,7 +123,7 @@ Planned Roadmap
     - ~~Check for dead procs~~
     - ~~Docs~~
     - ~~Cleanup dead files~~
-- Release 0.0.2
+- **Release 0.0.2**
     - move database code from FlowTrack.pm
     - Error Checking config file
     - Web Auth
@@ -132,6 +131,7 @@ Planned Roadmap
     - Sparkline page
     - Long term RRD graphs
     - Add index support to the schema definitions
+    - Update styling  (currently using a stock theme-roller)
 
 
 
