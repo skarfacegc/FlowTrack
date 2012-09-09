@@ -123,7 +123,7 @@ Planned Roadmap
     - ~~Check for dead procs~~
     - ~~Docs~~
     - ~~Cleanup dead files~~
-- Release 0.0.2
+- **Release 0.0.2**
     - move database code from FlowTrack.pm
     - Error Checking config file
     - Web Auth
@@ -131,6 +131,7 @@ Planned Roadmap
     - Sparkline page
     - Long term RRD graphs
     - Add index support to the schema definitions
+    - Update styling  (currently using a stock theme-roller)
 
 
 
