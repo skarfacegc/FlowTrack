@@ -21,7 +21,8 @@ sub indexPage
 {
     my $self = shift();
 
-    $self->render( template => 'index' );
+#    $self->render( template => 'index' );
+    $self->simpleFlows();
 
     return;
 }
@@ -30,7 +31,7 @@ sub simpleFlows
 {
     my $self = shift();
 
-    my ($timerange) = $self->param('timerange');
+    my ($timerange) = defined($self->param('timerange')) ? $self->param('timerange') : 1;
 
     $self->stash( flow_struct => $FT->getFlowsForLast($timerange) );
     $self->stash( timerange   => $timerange );
