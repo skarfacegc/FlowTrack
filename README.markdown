@@ -85,11 +85,16 @@ Point your browser at [http://localhost:5656/](http://localhost:5656/)
 The following URLs do things:
 
 - [http://localhost:5656/](http://locallhost:5656/) 
-  - This is the main page  (currently points to /FlowsForLast/1)
+
+    - This is the main page  (currently points to /FlowsForLast/1)
+
 - [http://localhost:5656/FlowsForLast/1](http://localhost:5656/FlowsForLast/1) 
-  - Shows flows for the last 1 minute.  Change the 1 to another number to expand your time range.
+
+    - Shows flows for the last 1 minute.  Change the 1 to another number to expand your time range.
+
 - [http://localhost:5656/json/FlowsForLast/1](http://localhost:5656/json/FlowsForLast/1)
-  - Raw data for the above
+
+    - Raw data for the above
 
 ### <a id="tuning"></a>Tuning
 You can tune the collector pool by twiddling these values in **FT/FlowCollector.pm**
@@ -104,8 +109,10 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
 0.0.1
 - Initial release.
 - Major components work
+
   - Collector
   - Webserver
+
 - Single table view of recent flows (no graphs etc)
 
 
@@ -123,6 +130,7 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
 ----------------
 
 - Release 0.0.1
+
   - ~~Data collection~~
   - ~~Webserver~~
   - ~~Basic list view~~
@@ -134,6 +142,7 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
   - Docs
   - ~~Cleanup dead files~~
 - Release 0.0.2    
+
   - Error Checking config file
   - Web Auth
   - Deeper server interaction on datatables
