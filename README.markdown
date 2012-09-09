@@ -125,25 +125,23 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
 ----------------
 
 - Release 0.0.1
-
-  - ~~Data collection~~
-  - ~~Webserver~~
-  - ~~Basic list view~~
-  - ~~Sane logging~~
-  - ~~Daemonize~~
-  - ~~Kill Children on signal~~
-  - ~~Fix the no-data request in Main.pm  (browser shouldn't hang on no data)~~
-  - ~~Check for dead procs~~
-  - Docs
-  - ~~Cleanup dead files~~
+    - ~~Data collection~~
+    - ~~Webserver~~
+    - ~~Basic list view~~
+    - ~~Sane logging~~
+    - ~~Daemonize~~
+    - ~~Kill Children on signal~~
+    - ~~Fix the no-data request in Main.pm  (browser shouldn't hang on no data)~~
+    - ~~Check for dead procs~~
+    - Docs
+    - ~~Cleanup dead files~~
 - Release 0.0.2    
-
-  - Error Checking config file
-  - Web Auth
-  - Deeper server interaction on datatables
-  - Sparkline page
-  - Long term RRD graphs
-  - Add index support to the schema definitions
+    - Error Checking config file
+    - Web Auth
+    - Deeper server interaction on datatables
+    - Sparkline page
+    - Long term RRD graphs
+    - Add index support to the schema definitions
 
 
 
