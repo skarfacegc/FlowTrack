@@ -1,16 +1,5 @@
-- [About](#about)
-- [Installation and Use](#InstallationUse)
-  - [Requirements](#Requirements)
-  - [Installing](#Installing)
-  - [Configuration](#Configuration)
-  - [URLs](#URLs)
-- [Release Notes](#Release Notes)
-- [Libraries Used](#3rdParty)
-- [Planned Roadmap](#Planned Roadmap)
-- [License](#License)
 
-
-<a id="About"></a>About
+About
 -----
 FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
 possible.  There's no need to configure an external webserver or database.  When you run FlowTracker a small 
@@ -22,10 +11,10 @@ under high load, let me know how it goes.
 
 I'd love to know if you're using it.  Open bugs/enhancements/etc here.
 
-<a id="InstallationUse"></a>Installation & Use
+Installation & Use
 ------------------
 
-### <a id="Requirements"></a>Requirements
+### Requirements
 (I will likely add new stuff to this list, such as rrdtool):
 - Perl 5.10+  (tested on 5.16.1)
     - Mojolicious
@@ -39,12 +28,12 @@ I'd love to know if you're using it.  Open bugs/enhancements/etc here.
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
 
-### <a id="Installing"></a>Installing
+### Installing
 I'd recommend cloning the repository
 
     git clone git://github.com/skarfacegc/FlowTrack.git
 
-### <a id="Configuration"></a>Configuration
+### Configuration
 **flowTrack.conf**
 
     # Port to read for netflow
@@ -80,7 +69,7 @@ Run FlowTrack.pl
 Logging is configured in flowTrackLog.conf Defaults to logging in ./log
 
 
-### <a id="URLs"></a>URLs
+### URLs
 Point your browser at [http://localhost:5656/](http://localhost:5656/)
 The following URLs do things:
 
@@ -91,7 +80,7 @@ The following URLs do things:
 - [http://localhost:5656/json/FlowsForLast/1](http://localhost:5656/json/FlowsForLast/1)<br>
    Raw data for the above
 
-### <a id="tuning"></a>Tuning
+### Tuning
 You can tune the collector pool by twiddling these values in **FT/FlowCollector.pm**
 ```perl
     min_spare_servers => 3,
@@ -99,7 +88,7 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
     max_servers       => 5,
     max_requests      => 5,
 ```
-<a id="Release Notes"></a>Release Notes
+Release Notes
 --------------
 0.0.1
 - Initial release.
@@ -111,7 +100,7 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
 - Single table view of recent flows (no graphs etc)
 
 
-<a id="3rdParty"></a>Libraries Used
+Libraries Used
 -------------------------
 
 - [Net::Server](http://search.cpan.org/~rhandom/Net-Server-2.006/lib/Net/Server.pod) - handles the collection loop
@@ -121,7 +110,7 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
 - [DataTables](http://datatables.net/) - Table Viewer
 - [SQLite](http://www.sqlite.org/) - SQLite for the database
 
-<a id="Planned Roadmap"></a>Planned Roadmap
+Planned Roadmap
 ----------------
 
 - Release 0.0.1
@@ -145,7 +134,7 @@ You can tune the collector pool by twiddling these values in **FT/FlowCollector.
 
 
 
-<a id="License"></a>License
+License
 -------
      Copyright (c) 2012, andrew@manor.org
      All rights reserved.
