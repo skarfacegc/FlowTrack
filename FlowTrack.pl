@@ -36,7 +36,7 @@ use POSIX ":sys_wait_h";
 use Mojo::Server;
 use Mojo::Server::Daemon;
 use Mojolicious::Commands;
-use MojoX::Log::Log4perl;
+
 
 # Loop and fork!
 main();
