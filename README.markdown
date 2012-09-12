@@ -10,7 +10,9 @@ Initially I'm focusing on feature set and simplicity of installation.  Scalabili
 I'm testing with very light traffic.  In otherwords, this will likely melt under high load.  If you do try running this
 under high load, let me know how it goes. 
 
-I'd love to know if you're using it.  Open bugs/enhancements/etc here.
+I'd love to know if you're using it. Questions?  Bugs? Feature Requests?  Open them as issues on [GitHub](https://github.com/skarfacegc/FlowTrack/)
+
+Take a look at the roadmap (below) for a rough idea of status.
 
 Installation & Use
 ------------------
@@ -134,6 +136,9 @@ Planned Roadmap
     - Long term RRD graphs
     - Add index support to the schema definitions
     - Update styling  (currently using a stock theme-roller)
+- **Future**
+    - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX source.  Gonna look at Yaf at some pt)
+
 
 
 
