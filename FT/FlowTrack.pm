@@ -107,7 +107,7 @@ sub storeFlow
     }
 
     $logger->debug("Saved: $total_saved");
-    return;
+    return 1;
 }
 
 #
@@ -220,7 +220,7 @@ sub getEgressFlowsForLast
     my $self = shift();
     my ($duration) = @_;
 
-    return getEgressFlowsInTimeRange( time - ( $duration * 60 ), time );
+    return $self->getEgressFlowsInTimeRange( time - ( $duration * 60 ), time );
 }
 
 #
@@ -264,28 +264,38 @@ sub getEgressFlowsInTimeRange
     return $ret_list;
 }
 
+#
+# Optionally takes a timestamp for the purge_interval
+#
+# returns # of rows purged.  -1 on error
+#
 sub purgeData
 {
-    my $self   = shift();
-    my $dbh    = $self->_initDB();
-    my $logger = get_logger();
+    my $self             = shift();
+    my ($purge_interval) = @_;
+    my $dbh              = $self->_initDB();
+    my $logger           = get_logger();
+    my $rows_deleted     = 0;
 
-    my $conf = FT::Configuration::getConf();
+    if ( !defined($purge_interval) )
+    {
+        my $conf = FT::Configuration::getConf();
 
-    my $watermark    = time - $conf->{purge_interval};
-    my $rows_deleted = 0;
+        $purge_interval = time - $conf->{purge_interval};
+
+        return -1 if(!defined($purge_interval));
+    }
+    
 
     my $sql = qq{
         DELETE FROM raw_flow WHERE fl_time < ?
     };
 
     my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
-
-    $rows_deleted = $sth->execute($watermark) or $logger->fatal( "Delete failed: " . $DBI::errstr );
-
+    $rows_deleted = $sth->execute($purge_interval) or $logger->fatal( "Delete failed: " . $DBI::errstr );
     $logger->debug("Purged: $rows_deleted") if ( $rows_deleted > 0 );
 
-    return;
+    return $rows_deleted;
 }
 
 #
