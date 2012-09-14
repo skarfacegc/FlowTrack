@@ -16,7 +16,9 @@ use vars qw($TEST_COUNT $DB_TEST_DIR);
 # Get some tmp space
 #
 my $tmpspace = File::Temp->new();
-my $DB_TEST_DIR = File::Temp->newdir();
+my $DB_TEST_DIR = File::Temp->newdir( 'FT_TESTXXXXXX', CLEANUP => 0 );
+
+warn $DB_TEST_DIR;
 
 # Holds test count
 my $TEST_COUNT;
@@ -55,7 +57,7 @@ sub customObjects
 
     # Custom Values
     my $ft_custom = FT::FlowTrack->new( "./blah", "192.168.1.1/24" );
-    ok( $ft_custom->{location} eq "./blah", "custom location" );
+    ok( $ft_custom->{location}         eq "./blah",         "custom location" );
     ok( $ft_custom->{internal_network} eq "192.168.1.1/24", "custom network" );
     unlink("./blah/FlowTrack.sqlite");
     rmdir("./blah");
@@ -69,7 +71,7 @@ sub defaultObjectTests
 {
     # Default Values
     my $ft_default = FT::FlowTrack->new();
-    ok( $ft_default->{location} eq "Data", "default location" );
+    ok( $ft_default->{location}         eq "Data",           "default location" );
     ok( $ft_default->{internal_network} eq "192.168.1.0/24", "default network" );
 
     # make sure we get back a well known table name
@@ -126,56 +128,103 @@ sub dbCreation
 
 sub dbQueryTest
 {
-    my $db_creat = FT::FlowTrack->new($DB_TEST_DIR);
+    my $db_creat = FT::FlowTrack->new( $DB_TEST_DIR, "10.0.0.1/32" );
 
-    # make sure we're setting our packet time a little in the past
-    # so we don't accidently travel to the future
+    # Verify creation and retrieval
+    # using canned data generated in buildTestFlows
+    ok( !$db_creat->storeFlow(),                                   "Store no flows" );
+    ok( $db_creat->storeFlow( buildTestFlows() ),                  "Store Flow" );
+    ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 105,       "Flows for last" );
+    ok( scalar( @{ $db_creat->getIngressFlowsForLast(5) } ) == 53, "IngressFlowsFlorLast" );
+    ok( scalar( @{ $db_creat->getEgressFlowsForLast(5) } ) == 52,  "EgressFlowsFlorLast" );
+
+    # We'll need the total count later (for the prune testing)
+    # so capture the count
+    my $pre_prune_count = scalar( @{ $db_creat->getFlowsInTimeRange( 0, time ) } );
+    ok( $pre_prune_count == 106, "Get full db" );
+
+    # Verify Fields are correct from the DB
+    my $sample = $db_creat->getFlowsInTimeRange( 0, time );
+    ok(
+        $sample->[0]{src_ip}        eq "167837698"
+          && $sample->[0]{dst_ip}   eq "167772169"
+          && $sample->[0]{src_port} eq "1024"
+          && $sample->[0]{dst_port} eq "80"
+          && $sample->[0]{bytes}    eq "8192"
+          && $sample->[0]{packets}  eq "255",
+        ,
+        "compare single record and default time sort"
+    );
+
+
+    # now test purging
+    ok($db_creat->purgeData(time - 86400) == 1, "purge data");
+
+    # Get all of the flows currently int he db
+
+    $TEST_COUNT += 8;
+}
+
+#
+# Build some sample flows
+#
+sub buildTestFlows
+{
+
+    my $flow_list;
+    my $sample_flow;
+
     my $time = time - 1;
 
-    my $sample_flows = [
+    # First we add a flow at the beginning of time (to test our date math)
+    my $ancient_flow = {
+                         fl_time  => 0,            # The dark ages
+                         src_ip   => 167837698,    # 10.1.0.2
+                         dst_ip   => 167772169,    # 10.0.0.9
+                         src_port => 1024,
+                         dst_port => 80,
+                         bytes    => 8192,
+                         packets  => 255
+    };
 
+    push( @$flow_list, $ancient_flow );
+
+    # 105 is just enough to trip the batching code
+    for ( my $i = 0 ; $i < 105 ; $i++ )
+    {
+        my $sample_to_use;
+        my $sample_flow_egress = {
+            fl_time => $time + ( $i * .001 ),    # Just want a small time step
+            src_ip   => 167772161,               # 10.0.0.1
+            dst_ip   => 167837697,               # 10.1.0.1
+            src_port => 1024,
+            dst_port => 80,
+            bytes    => 8192,
+            packets  => 255
+        };
+        my $sample_flow_ingress = {
+            fl_time => $time + ( $i * .001 ),    # Just want a small time step
+            src_ip   => 167837697,               # 10.1.0.1
+            dst_ip   => 167772161,               # 10.0.0.1
+            src_port => 1024,
+            dst_port => 80,
+            bytes    => 8192,
+            packets  => 255
+        };
+
+        if ( $i % 2 == 0 )
         {
-           fl_time  => $time + .1,
-           src_ip   => 167772161,
-           dst_ip   => 167837697,
-           src_port => 1024,
-           dst_port => 80,
-           bytes    => 8192,
-           packets  => 255
-
-        },
-
+            $sample_flow = $sample_flow_ingress;
+        }
+        else
         {
-           fl_time  => $time + .2,
-           src_ip   => 167772161,
-           dst_ip   => 167837697,
-           src_port => 1024,
-           dst_port => 80,
-           bytes    => 8192,
-           packets  => 255
+            $sample_flow = $sample_flow_egress;
+        }
 
-        },
+        push( @$flow_list, $sample_flow );
+    }
 
-        {
-           fl_time  => $time + .3,
-           src_ip   => 167772161,
-           dst_ip   => 167837697,
-           src_port => 1024,
-           dst_port => 80,
-           bytes    => 8192,
-           packets  => 255
-
-        },
-      ];
-
-      use Data::Dumper;
-
-      ok( $db_creat->storeFlow($sample_flows), "Store Flow" );
-      ok( scalar(@{$db_creat->getFlowsForLast(5)})==3, "flows for last");
-
-
-
-      $TEST_COUNT += 2;
+    return $flow_list;
 }
 
 END
