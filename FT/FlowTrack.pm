@@ -27,13 +27,13 @@ sub new
     my $class = shift;
     my $self  = {};
 
-    ( $self->{location}, $self->{debug}, $self->{dbname}, $self->{internal_network} ) = @_;
+    my ( $location, $internal_network ) = @_;
+
+    $self->{dbname} = "FlowTrack.sqlite";
 
     # ensure we have some defaults
-    $self->{dbname}           ||= "FlowTrack.sqlite";
-    $self->{location}         ||= "Data";
-    $self->{debug}            ||= 0;
-    $self->{internal_network} ||= "192.168.1.0/24";
+    $self->{location}         = defined($location)         ? $location         : "Data";
+    $self->{internal_network} = defined($internal_network) ? $internal_network : "192.168.1.0/24";
 
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
@@ -488,17 +488,5 @@ sub AUTOLOAD
 
     die "Couldn't find $AUTOLOAD";
 }
+
 1;
-__END__
-
-=head1 FlowTrack
-
-Routines surrounding the processing of the flowtrack data.
-
-Only the public methods
-
-=head2 new
-
-FlowTrack->new(<db directory>,<logging 1 == on>, <dbname>);
-
-FlowTrack->storeFlow($flow_list);
