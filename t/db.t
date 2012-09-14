@@ -3,15 +3,15 @@ use warnings;
 use Log::Log4perl qw(get_logger);
 use autodie;
 
-use Test::More tests => 16;
+use Test::More tests => 14;
 use Data::Dumper;
 use FT::Schema;
 
-use vars qw($DB_TEST_FILE);
+use vars qw($DB_TEST_DIR);
 
 # Assumes you have flow tools in /opt/local/bin or /usr/bin
 
-my $DB_TEST_FILE = "FT_TEST.sqlite";
+my $DB_TEST_DIR = "/tmp";
 
 BEGIN
 {
@@ -22,7 +22,7 @@ test_main();
 
 sub test_main
 {
-    unlink("/tmp/$DB_TEST_FILE") if ( -e "/tmp/$DB_TEST_FILE" );
+    unlink("$DB_TEST_DIR/FlowTrack.sqlite") if ( -e "$DB_TEST_DIR/FlowTrack.sqlite" );
     object_tests();
     db_creation();
 }
@@ -40,18 +40,16 @@ sub object_tests
     #
 
     # Custom Values
-    my $ft_custom = FT::FlowTrack->new( "./blah", 1, "flowtrack.sqlite" );
+    my $ft_custom = FT::FlowTrack->new( "./blah", "192.168.1.1/24" );
     ok( $ft_custom->{location} eq "./blah", "custom location" );
-    ok( $ft_custom->{debug} == 1, "custom debug setting" );
-    ok( $ft_custom->{dbname} eq "flowtrack.sqlite", "custom DB name" );
-    unlink("./blah/flowtrack.sqlite");
+    ok( $ft_custom->{internal_network} eq "192.168.1.1/24" );
+    unlink("./blah/FlowTrack.sqlite");
     rmdir("./blah");
 
     # Default Values
     my $ft_default = FT::FlowTrack->new();
     ok( $ft_default->{location} eq "Data", "default location" );
-    ok( $ft_default->{debug} == 0, "default debug setting" );
-    ok( $ft_default->{dbname} eq "FlowTrack.sqlite", "default DB name" );
+    ok( $ft_default->{internal_network} eq "192.168.1.0/24" );
 
     # make sure we get back a well known table name
     my $tables = $ft_default->get_tables();
@@ -77,10 +75,10 @@ sub db_creation
     # We'll use $dbh and $db_creat for several areas of testing
     #
 
-    my $db_creat = FT::FlowTrack->new( "/tmp", 1, $DB_TEST_FILE );
+    my $db_creat = FT::FlowTrack->new($DB_TEST_DIR);
 
     my $dbh = $db_creat->_initDB();
-    ok( -e "/tmp/$DB_TEST_FILE", "database file exists" );
+    ok( -e "$DB_TEST_DIR/FlowTrack.sqlite", "database file exists" );
     is_deeply( $dbh, $db_creat->{dbh}, "object db handle compare" );
     is_deeply( $db_creat->{dbh}, $db_creat->{db_connection_pool}{$$}, "connection pool object storage" );
 

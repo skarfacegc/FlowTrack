@@ -74,7 +74,7 @@ sub child_finish_hook
     if(!defined $FT)
     {
         my $config = FT::Configuration::getConf();
-        $FT = FT::FlowTrack->new( $config->{data_dir}, 1, $config->{dbname}, $config->{internal_network} );
+        $FT = FT::FlowTrack->new( $config->{data_dir}, $config->{internal_network} );
     }
     
     $logger->debug("Collector Cleanup");
