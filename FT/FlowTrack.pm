@@ -107,7 +107,7 @@ sub storeFlow
     }
 
     $logger->debug("Saved: $total_saved");
-    return;
+    return 1;
 }
 
 #
