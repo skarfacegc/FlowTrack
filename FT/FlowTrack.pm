@@ -27,13 +27,13 @@ sub new
     my $class = shift;
     my $self  = {};
 
-    ( $self->{location}, $self->{debug}, $self->{dbname}, $self->{internal_network} ) = @_;
+    my ( $location, $internal_network ) = @_;
+
+    $self->{dbname} = "FlowTrack.sqlite";
 
     # ensure we have some defaults
-    $self->{dbname}           ||= "FlowTrack.sqlite";
-    $self->{location}         ||= "Data";
-    $self->{debug}            ||= 0;
-    $self->{internal_network} ||= "192.168.1.0/24";
+    $self->{location}         = defined($location)         ? $location         : "Data";
+    $self->{internal_network} = defined($internal_network) ? $internal_network : "192.168.1.0/24";
 
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
@@ -107,7 +107,7 @@ sub storeFlow
     }
 
     $logger->debug("Saved: $total_saved");
-    return;
+    return 1;
 }
 
 #
@@ -220,7 +220,7 @@ sub getEgressFlowsForLast
     my $self = shift();
     my ($duration) = @_;
 
-    return getEgressFlowsInTimeRange( time - ( $duration * 60 ), time );
+    return $self->getEgressFlowsInTimeRange( time - ( $duration * 60 ), time );
 }
 
 #
@@ -264,28 +264,38 @@ sub getEgressFlowsInTimeRange
     return $ret_list;
 }
 
+#
+# Optionally takes a timestamp for the purge_interval
+#
+# returns # of rows purged.  -1 on error
+#
 sub purgeData
 {
-    my $self   = shift();
-    my $dbh    = $self->_initDB();
-    my $logger = get_logger();
+    my $self             = shift();
+    my ($purge_interval) = @_;
+    my $dbh              = $self->_initDB();
+    my $logger           = get_logger();
+    my $rows_deleted     = 0;
 
-    my $conf = FT::Configuration::getConf();
+    if ( !defined($purge_interval) )
+    {
+        my $conf = FT::Configuration::getConf();
 
-    my $watermark    = time - $conf->{purge_interval};
-    my $rows_deleted = 0;
+        $purge_interval = time - $conf->{purge_interval};
+
+        return -1 if(!defined($purge_interval));
+    }
+    
 
     my $sql = qq{
         DELETE FROM raw_flow WHERE fl_time < ?
     };
 
     my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
-
-    $rows_deleted = $sth->execute($watermark) or $logger->fatal( "Delete failed: " . $DBI::errstr );
-
+    $rows_deleted = $sth->execute($purge_interval) or $logger->fatal( "Delete failed: " . $DBI::errstr );
     $logger->debug("Purged: $rows_deleted") if ( $rows_deleted > 0 );
 
-    return;
+    return $rows_deleted;
 }
 
 #
@@ -488,17 +498,5 @@ sub AUTOLOAD
 
     die "Couldn't find $AUTOLOAD";
 }
+
 1;
-__END__
-
-=head1 FlowTrack
-
-Routines surrounding the processing of the flowtrack data.
-
-Only the public methods
-
-=head2 new
-
-FlowTrack->new(<db directory>,<logging 1 == on>, <dbname>);
-
-FlowTrack->storeFlow($flow_list);

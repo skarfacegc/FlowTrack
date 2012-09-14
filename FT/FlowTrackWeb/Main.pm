@@ -11,11 +11,12 @@ use POSIX;
 
 our $PORT             = 2055;
 our $DATAGRAM_LEN     = 1548;
-our $DBNAME           = 'FlowTrack.sqlite';
+
+# TODO: pull this from the config file
 our $INTERNAL_NETWORK = '192.168.1.0/24';
 our $DATA_DIR         = './Data';
 
-our $FT = FT::FlowTrack->new( $DATA_DIR, 1, $DBNAME, $INTERNAL_NETWORK );
+our $FT = FT::FlowTrack->new( $DATA_DIR, $INTERNAL_NETWORK );
 
 sub indexPage
 {
