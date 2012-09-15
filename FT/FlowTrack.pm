@@ -69,8 +69,10 @@ sub storeFlow
 
     my $dbh = $self->_initDB();
 
-    my $sql =
-      "INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets ) VALUES (?,?,?,?,?,?,?)";
+    my $sql = qq {
+      INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets, protocol ) 
+      VALUES (?,?,?,?,?,?,?,?);
+    };
 
     my $sth = $dbh->prepare($sql)
       or croak( "Coudln't preapre SQL: " . $dbh->errstr() );
@@ -93,14 +95,17 @@ sub storeFlow
         }
     }
 
+    #
+    # Write batches of data at a time.  Tuned by $batch_size above
+    #
     foreach my $batch (@$insert_struct)
     {
         my @tuple_status;
         my $rows_saved =
           $sth->execute_array(
                                { ArrayTupleStatus => \@tuple_status },
-                               $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip}, $batch->{src_port},
-                               $batch->{dst_port}, $batch->{bytes},  $batch->{packets}
+                               $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip},  $batch->{src_port},
+                               $batch->{dst_port}, $batch->{bytes},  $batch->{packets}, $batch->{protocol}
           ) or croak( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
 
         $total_saved += $rows_saved;
@@ -110,15 +115,6 @@ sub storeFlow
     return 1;
 }
 
-#
-# Handle's building the reports (graphs, html, etc)
-#
-sub runReports
-{
-    my $self = shift();
-
-    return;
-}
 
 #
 # Gets flows for the last x minutes
@@ -283,9 +279,8 @@ sub purgeData
 
         $purge_interval = time - $conf->{purge_interval};
 
-        return -1 if(!defined($purge_interval));
+        return -1 if ( !defined($purge_interval) );
     }
-    
 
     my $sql = qq{
         DELETE FROM raw_flow WHERE fl_time < ?

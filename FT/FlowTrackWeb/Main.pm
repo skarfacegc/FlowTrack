@@ -8,9 +8,8 @@ use FT::FlowTrack;
 use Mojo::Base 'Mojolicious::Controller';
 use POSIX;
 
-
-our $PORT             = 2055;
-our $DATAGRAM_LEN     = 1548;
+our $PORT         = 2055;
+our $DATAGRAM_LEN = 1548;
 
 # TODO: pull this from the config file
 our $INTERNAL_NETWORK = '192.168.1.0/24';
@@ -22,7 +21,7 @@ sub indexPage
 {
     my $self = shift();
 
-#    $self->render( template => 'index' );
+    #    $self->render( template => 'index' );
     $self->simpleFlows();
 
     return;
@@ -32,7 +31,7 @@ sub simpleFlows
 {
     my $self = shift();
 
-    my ($timerange) = defined($self->param('timerange')) ? $self->param('timerange') : 1;
+    my ($timerange) = defined( $self->param('timerange') ) ? $self->param('timerange') : 1;
 
     $self->stash( flow_struct => $FT->getFlowsForLast($timerange) );
     $self->stash( timerange   => $timerange );
@@ -44,7 +43,7 @@ sub simpleFlows
 
 sub simpleFlowsJSON
 {
-    my $self = shift();
+    my $self   = shift();
     my $logger = get_logger();
 
     my ($timerange) = $self->param('timerange');
@@ -58,23 +57,24 @@ sub simpleFlowsJSON
     };
 
     # Don't try to construct aaData if we don't have data
-    if(defined($flow_struct))
+    if ( defined($flow_struct) )
     {
         # Now we populate aaData
         foreach my $flow (@$flow_struct)
         {
             my ( $time, $microsecs ) = split( /\./, $flow->{fl_time} );
             my $timestamp = strftime( "%r", localtime($time) );
-    
+
             my $row_struct = [
-                               $timestamp,        $flow->{src_ip_obj}->ip(), $flow->{src_port}, $flow->{dst_ip_obj}->ip(),
-                               $flow->{dst_port}, $flow->{bytes},            $flow->{packets}
+                               $timestamp,        $flow->{src_ip_obj}->ip(),
+                               $flow->{src_port}, $flow->{dst_ip_obj}->ip(),
+                               $flow->{dst_port}, $flow->{protocol},
+                               $flow->{bytes},    $flow->{packets}
             ];
-    
+
             push( @{ $ret_struct->{aaData} }, $row_struct );
         }
-    
-    
+
     }
 
     $self->render( { json => $ret_struct } );
