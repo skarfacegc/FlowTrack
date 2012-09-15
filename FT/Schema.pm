@@ -82,6 +82,12 @@ $TABLES->{"raw_flow"} = [
     {
        name => "packets",
        type => "INT"
+    },
+
+    # protocol
+    {
+        name => "protocol",
+        type => "INT"
     }
 ];
 

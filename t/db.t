@@ -18,8 +18,6 @@ use vars qw($TEST_COUNT $DB_TEST_DIR);
 my $tmpspace = File::Temp->new();
 my $DB_TEST_DIR = File::Temp->newdir( 'FT_TESTXXXXXX', CLEANUP => 0 );
 
-warn $DB_TEST_DIR;
-
 # Holds test count
 my $TEST_COUNT;
 
@@ -151,14 +149,14 @@ sub dbQueryTest
           && $sample->[0]{src_port} eq "1024"
           && $sample->[0]{dst_port} eq "80"
           && $sample->[0]{bytes}    eq "8192"
-          && $sample->[0]{packets}  eq "255",
+          && $sample->[0]{packets}  eq "255"
+          && $sample->[0]{protocol} eq "7",
         ,
         "compare single record and default time sort"
     );
 
-
     # now test purging
-    ok($db_creat->purgeData(time - 86400) == 1, "purge data");
+    ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
 
     # Get all of the flows currently int he db
 
@@ -184,7 +182,8 @@ sub buildTestFlows
                          src_port => 1024,
                          dst_port => 80,
                          bytes    => 8192,
-                         packets  => 255
+                         packets  => 255,
+                         protocol => 7
     };
 
     push( @$flow_list, $ancient_flow );
@@ -200,7 +199,8 @@ sub buildTestFlows
             src_port => 1024,
             dst_port => 80,
             bytes    => 8192,
-            packets  => 255
+            packets  => 255,
+            protocol => 6
         };
         my $sample_flow_ingress = {
             fl_time => $time + ( $i * .001 ),    # Just want a small time step
@@ -209,7 +209,8 @@ sub buildTestFlows
             src_port => 1024,
             dst_port => 80,
             bytes    => 8192,
-            packets  => 255
+            packets  => 255,
+            protocol => 7
         };
 
         if ( $i % 2 == 0 )
