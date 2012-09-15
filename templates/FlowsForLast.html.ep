@@ -45,6 +45,7 @@
                     <th>Source Port</th>
                     <th>Dest IP</th>
                     <th>Dest Port</th>
+                    <th>Protocol</th>
                     <th>Bytes</th>
                     <th>Packets</th>
                 </tr>

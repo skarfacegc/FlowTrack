@@ -70,7 +70,7 @@ sub decode_netflow
         $tmp_struct->{dst_port} = hex( unpack( "H*", $flow->{11} ) );
         $tmp_struct->{bytes}    = hex( unpack( "H*", $flow->{1} ) );
         $tmp_struct->{packets}  = hex( unpack( "H*", $flow->{2} ) );
-        $tmp_struct->{proto}    = hex( unpack( "H*", $flow->{4} ) );
+        $tmp_struct->{protocol}    = hex( unpack( "H*", $flow->{4} ) );
         push( @{$ret_list}, $tmp_struct );
 
     }
