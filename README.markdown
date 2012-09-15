@@ -14,6 +14,8 @@ I'd love to know if you're using it. Questions?  Bugs? Feature Requests?  Open t
 
 Take a look at the roadmap (below) for a rough idea of status.
 
+**Note:** I forgot to add protocol to the table view, it's in the develop branch now.  
+
 Installation & Use
 ------------------
 
