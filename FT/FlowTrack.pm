@@ -115,24 +115,16 @@ sub storeFlow
     return 1;
 }
 
-
 #
 # Gets flows for the last x minutes
 #
 # returns an array of flows for the last x minutes
 sub getFlowsForLast
 {
-    my $self    = shift();
-    my ($range) = @_;
-    my $now     = time;
+    my $self = shift();
+    my ($duration) = @_;
 
-    my $start_time;
-    my $end_time;
-
-    $start_time = $now - ( $range * 60 );
-    $end_time = $now;
-
-    return $self->getFlowsInTimeRange( $start_time, $end_time );
+    return $self->getFlowsInTimeRange( time - ( $duration * 60 ), time );
 }
 
 #
@@ -255,6 +247,56 @@ sub getEgressFlowsInTimeRange
     while ( my $ref = $sth->fetchrow_hashref )
     {
         push @$ret_list, $self->processFlowRecord($ref);
+    }
+
+    return $ret_list;
+}
+
+#
+# Get bucketed flows
+#
+# select count(*), sum(bytes), datetime(fl_time, 'unixepoch')
+#      from raw_flow group by round(fl_time/300) order by round(fl_time/300);
+#
+sub getSumBucketsForLast
+{
+    my $self = shift();
+    my ( $bucket_size, $duration ) = @_;
+
+    return $self->getSumBucketsForTimeRange( $bucket_size, time - ( $duration * 60 ), time );
+
+}
+
+sub getSumBucketsForTimeRange
+{
+    my $self = shift();
+    my ( $bucket_size, $start_time, $end_time ) = @_;
+
+    my $ret_list;
+    my $dbh    = $self->_initDB();
+    my $logger = get_logger();
+
+    my $sql = qq{
+        SELECT count(*) AS flows,
+               sum(bytes) AS bytes,
+               sum(packets) AS packets
+        FROM raw_flow
+        WHERE
+           fl_time >= ? AND fl_time <= ?
+        GROUP BY
+           round(fl_time/?)
+        ORDER BY
+           fl_time
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->fatal( " Failed to prepare: " . $dbh->errstr );
+
+    $sth->execute( $start_time, $end_time, $bucket_size )
+      or $logger->fatal( "failed execute $sql: " . $DBI::errstr );
+
+    while ( my $ref = $sth->fetchrow_hashref )
+    {
+        push @$ret_list, $ref;
     }
 
     return $ret_list;
