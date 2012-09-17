@@ -9,14 +9,9 @@ use File::Temp;
 use Test::More;
 use Data::Dumper;
 use FT::Schema;
+use Log::Log4perl;
 
 use vars qw($TEST_COUNT $DB_TEST_DIR);
-
-#
-# Get some tmp space
-#
-my $tmpspace = File::Temp->new();
-my $DB_TEST_DIR = File::Temp->newdir( 'TESTFTXXXXXX', CLEANUP => 1 );
 
 # Holds test count
 my $TEST_COUNT;
@@ -31,7 +26,14 @@ test_main();
 
 sub test_main
 {
-    unlink("$DB_TEST_DIR/FlowTrack.sqlite") if ( -e "$DB_TEST_DIR/FlowTrack.sqlite" );
+    # This is here mainly to squash warnings
+    my $empty_log_config = qq{log4perl.rootLogger=FATAL, Screen
+                              log4perl.appender.Screen = Log::Log4perl::Appender::Screen
+                              log4perl.appender.Screen.layout = Log::Log4perl::Layout::SimpleLayout};
+
+    Log::Log4perl::init( \$empty_log_config );
+
+    # Run the tests!
     customObjects();
     defaultObjectTests();
     dbCreation();
@@ -99,11 +101,13 @@ sub dbCreation
     #
     # We'll use $dbh and $db_creat for several areas of testing
     #
+    my $db_location = getTmp();
 
-    my $db_creat = FT::FlowTrack->new($DB_TEST_DIR);
+
+    my $db_creat = FT::FlowTrack->new($db_location);
 
     my $dbh = $db_creat->_initDB();
-    ok( -e "$DB_TEST_DIR/FlowTrack.sqlite", "database file exists" );
+    ok( -e "$db_location/FlowTrack.sqlite", "database file exists" );
     is_deeply( $dbh, $db_creat->{dbh}, "object db handle compare" );
     is_deeply( $db_creat->{dbh}, $db_creat->{db_connection_pool}{$$}, "connection pool object storage" );
 
@@ -133,8 +137,8 @@ sub dbCreation
 # about size/count etc.
 sub dbRawQueryTests
 {
-    $DB_TEST_DIR = File::Temp->newdir( 'TEST_RAW_XXXXXX', CLEANUP => 1 );
-    my $db_creat = FT::FlowTrack->new( $DB_TEST_DIR, "10.0.0.1/32" );
+    my $db_location = getTmp();
+    my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
 
     # Verify creation and retrieval
     # using canned data generated in buildRawFlows
@@ -175,21 +179,27 @@ sub dbRawQueryTests
 sub dbByteBucketQueryTests
 {
     # Need a new DB Dir (so we don't fight with data from the last test)
-    $DB_TEST_DIR = File::Temp->newdir( 'TEST_BUCKET_XXXXXX', CLEANUP => 1 );
+    my $db_location = getTmp();
 
-    my $db_creat = FT::FlowTrack->new( $DB_TEST_DIR, "10.0.0.1/32" );
+    my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
     $db_creat->storeFlow( buildFlowsForBucketTest(300) );
 
+    my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, 0, time );
+
     # Now test some bucketing
-    ok( scalar @{$db_creat->getSumBucketsForTimeRange( 300, 0, time )} == 1000, "Buckets in time range" );
+    ok( scalar @{$tmp_flows} == 1000, "Buckets in time range" );
 
-    # Make sure that the relative call returns something getting the time alignment correct
-    # is a bit tricky, so I'm looking for non-zero count.  this actully just calls getSumBuckgetsForTimeRange
-    # underneath so I've already verified that the base call is working correctly above.
-    ok (scalar @{$db_creat->getSumBucketsForLast(300, 15)} > 0, "Buckets for last");
+    # Make sure the sums work
+    ok( $tmp_flows->[0]{bytes} == 49152,  "Byte Sum" );
+    ok( $tmp_flows->[0]{packets} == 1530, "Packets Sum" );
 
-    $TEST_COUNT += 2;
+    # Make sure that the relative call returns something. getting the time alignment correct
+    # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
+    # calls getSumBuckgetsForTimeRange underneath so I've already verified that the base call is
+    # working correctly above.
+    ok( scalar @{ $db_creat->getSumBucketsForLast( 300, 15 ) } > 0, "Buckets for last" );
 
+    $TEST_COUNT += 4;
 }
 
 #
@@ -303,6 +313,18 @@ sub buildFlowsForBucketTest
     }
 
     return $flow_list;
+}
+
+#
+# Get a tmpdir
+#
+sub getTmp
+{
+    #
+    # Get some tmp space
+    #
+    my $tmpspace = File::Temp->new();
+    return File::Temp->newdir( 'TEST_FT_XXXXXX', CLEANUP => 1 );
 }
 
 END
