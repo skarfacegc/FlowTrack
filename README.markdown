@@ -114,6 +114,7 @@ Libraries Used
 - [JQuery](http://jquery.com/) - JS Framework
 - [DataTables](http://datatables.net/) - Table Viewer
 - [SQLite](http://www.sqlite.org/) - SQLite for the database
+- [FlotCharts](http://www.flotcharts.org/) - jQuery graphing package
 
 Planned Roadmap
 ----------------
