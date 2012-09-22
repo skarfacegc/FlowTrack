@@ -14,7 +14,7 @@ use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
 use DateTime;
-use DateTime::Timezone;
+use DateTime::TimeZone;
 use vars '$AUTOLOAD';
 
 #
