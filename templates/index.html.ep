@@ -23,7 +23,7 @@
                     lines: { show: true },
                     points: { show: true },
                     xaxis: {
-                        mode: "time"
+                        mode: "time",
                     }
 
                     

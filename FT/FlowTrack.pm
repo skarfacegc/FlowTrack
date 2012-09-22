@@ -13,6 +13,8 @@ use FT::Schema;
 use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
+use DateTime;
+use DateTime::Timezone;
 use vars '$AUTOLOAD';
 
 #
@@ -41,6 +43,7 @@ sub new
 
     bless( $self, $class );
 
+    $self->{tz_offset} = DateTime::TimeZone->new( name => 'local' )->offset_for_datetime( DateTime->now() );
     $self->{dbh} = $self->_initDB();
     $self->_createTables();
 
@@ -267,7 +270,6 @@ sub getSumBucketsForLast
 
 }
 
-
 #
 # Get total ingress/egress packets/bytes/flows for each $bucket_size buckets in the database
 # bounded by start_time and end_time
@@ -355,14 +357,14 @@ sub getSumBucketsForTimeRange
 
     my $sth = $dbh->prepare($sql) or $logger->fatal( " Failed to prepare: " . $dbh->errstr );
 
-    $sth->execute( $bucket_size, $bucket_size, 
+    $sth->execute(
+                   $bucket_size,  $bucket_size,   $internal_low, $internal_high, $internal_low, $internal_high,
                    $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
                    $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
                    $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
                    $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
                    $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
-                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
-                   $start_time,  $end_time,      $bucket_size
+                   $internal_low, $internal_high, $start_time,   $end_time,      $bucket_size
     ) or $logger->fatal( "failed execute $sql: " . $DBI::errstr );
 
     while ( my $ref = $sth->fetchrow_hashref )

@@ -111,8 +111,9 @@ sub aggergateBucketJSON
             next if ( $field eq "bucket_time" );
             $buckets_by_field->{$field}{label} = $field unless(exists($buckets_by_field->{$field}));
 
-
-            push( @{ $buckets_by_field->{$field}{data} }, [ $bucket->{bucket_time}, $bucket->{$field} ] );
+            # Need to convert to milliseconds and utc
+            my $timestamp = ($bucket->{bucket_time} + $FT->{tz_offset}) * 1000;
+            push( @{ $buckets_by_field->{$field}{data} }, [ $timestamp, $bucket->{$field} ] );
         }
     }
 
@@ -123,7 +124,7 @@ sub aggergateBucketJSON
         push @$ret_struct, $buckets_by_field->{$graph_arrays};
     }
 
-    $self->render( { json => $buckets_by_field->{ingress_flows} } );
+    $self->render( { json => $buckets_by_field->{ingress_bytes} } );
 
     return;
 

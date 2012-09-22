@@ -28,6 +28,8 @@ Installation & Use
     - DBD::SQLite
     - Net::Flow
     - Net::IP
+    - DateTime
+    - DateTime::Timezone (likely installed by the above)
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
 
