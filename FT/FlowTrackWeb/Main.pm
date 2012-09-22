@@ -7,6 +7,7 @@ use Carp;
 use FT::FlowTrack;
 use Mojo::Base 'Mojolicious::Controller';
 use POSIX;
+use Data::Dumper;
 
 our $PORT         = 2055;
 our $DATAGRAM_LEN = 1548;
@@ -20,9 +21,12 @@ our $FT = FT::FlowTrack->new( $DATA_DIR, $INTERNAL_NETWORK );
 sub indexPage
 {
     my $self = shift();
+    my $flow_data = $FT->getSumBucketsForTimeRange( 60, time - 600, time );
 
-    #    $self->render( template => 'index' );
-    $self->simpleFlows();
+    $self->stash( flow_data   => Dumper($flow_data) );
+    $self->stash( total_flows => scalar @$flow_data );
+
+    $self->render( template => 'index' );
 
     return;
 }
@@ -80,5 +84,48 @@ sub simpleFlowsJSON
     $self->render( { json => $ret_struct } );
 
     return;
+}
+
+#
+# JSON's up the aggregate bucket datastructure
+#
+sub aggergateBucketJSON
+{
+    my $self   = shift;
+    my $logger = get_logger();
+
+    my $bucketsize = $self->param('bucketsize');
+    my $flow_buckets = $FT->getSumBucketsForLast( 60, 30 );
+    my $ret_struct;
+
+    # building a datastructure keyed by the field names so we can build a
+    # per field list of x,y value pairs (x is always timestamp)
+    # this will be turned into the final return list prior to rendering
+    my $buckets_by_field;
+
+    # build a list per
+    foreach my $bucket (@$flow_buckets)
+    {
+        foreach my $field ( keys %$bucket )
+        {
+            next if ( $field eq "bucket_time" );
+            $buckets_by_field->{$field}{label} = $field unless(exists($buckets_by_field->{$field}));
+
+
+            push( @{ $buckets_by_field->{$field}{data} }, [ $bucket->{bucket_time}, $bucket->{$field} ] );
+        }
+    }
+
+
+
+    foreach my $graph_arrays (keys %$buckets_by_field) 
+    {
+        push @$ret_struct, $buckets_by_field->{$graph_arrays};
+    }
+
+    $self->render( { json => $buckets_by_field->{ingress_flows} } );
+
+    return;
+
 }
 1;

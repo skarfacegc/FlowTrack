@@ -16,3 +16,10 @@ body {
     position: relative;
     padding: 20px;
 }
+
+
+#topGraph {
+    background-color: white;
+    width:600px;
+    height:300px;
+}

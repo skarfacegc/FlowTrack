@@ -186,12 +186,18 @@ sub dbByteBucketQueryTests
 
     my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, 0, time );
 
+
     # Now test some bucketing
     ok( scalar @{$tmp_flows} == 1000, "Buckets in time range" );
 
     # Make sure the sums work
-    ok( $tmp_flows->[0]{bytes} == 49152,  "Byte Sum" );
-    ok( $tmp_flows->[0]{packets} == 1530, "Packets Sum" );
+    ok( $tmp_flows->[0]{ingress_bytes} == 12288 &&
+        $tmp_flows->[0]{egress_bytes} == 24576 &&
+        $tmp_flows->[0]{total_bytes} == 36864,  "Byte Sum" );
+    
+    ok( $tmp_flows->[0]{ingress_packets} == 768 &&
+        $tmp_flows->[0]{egress_packets} == 1536 &&
+        $tmp_flows->[0]{total_packets} == 2304,  "Packet Sum" );
 
     # Make sure that the relative call returns something. getting the time alignment correct
     # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
@@ -291,7 +297,7 @@ sub buildFlowsForBucketTest
                 src_port => 1024,
                 dst_port => 80,
                 bytes    => 8192,
-                packets  => 255,
+                packets  => 512,
                 protocol => 6
             };
             my $sample_flow_ingress = {
@@ -300,8 +306,8 @@ sub buildFlowsForBucketTest
                 dst_ip   => 167772161,    # 10.0.0.1
                 src_port => 1024,
                 dst_port => 80,
-                bytes    => 8192,
-                packets  => 255,
+                bytes    => 4096,
+                packets  => 256,
                 protocol => 7
             };
 

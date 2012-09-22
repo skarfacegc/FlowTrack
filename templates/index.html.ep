@@ -1,28 +1,64 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<head>
-    <title>FlowTrack</title>
-    
-    <!-- jQuery -->
-    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
-    
-    <script>
-    $(document).ready(function($) 
-    {
-        
+    <head>
+        <title>
+            FlowTrack
+        </title><!-- jQuery -->
 
-    });
-    
-    </script>
+        <script type="text/javascript" charset="utf8" src="/js/jquery-1.8.1.min.js"></script>
+        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"></script>
+ <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"></script>
+
+        <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet">
+        <link type="text/css" href="/css/base.css" rel="Stylesheet">
+
+        <script>
+            $(document).ready(function($) 
+            {
+                var data = [];
+            
+
+                var options = {
+                    lines: { show: true },
+                    points: { show: true },
+                    xaxis: {
+                        mode: "time"
+                    }
+
+                    
+                };
+
+                $.plot($("#topGraph"), data, options);
 
 
+                function onDataReceived(series)
+                {
+                    data = [series];
+                    console.log(data.toString());
+                    $.plot($("#topGraph"), data, options);
+                    setTimeout(getData,10000);
+                }
 
-</head>
-<body>
+                function getData()
+                {
+                     $.ajax({
+                        url:"/json/LastHourTotals/1",
+                        method: 'GET',
+                        dataType: 'json',
+                        success: onDataReceived
+                     });
 
+                }
 
+                setInterval(getData, 10000);
+            });
 
-
-
-</body>
+        </script>
+    </head>
+    <body>
+        <div class="wrapper">
+            <div id="topGraph" style="width:600px;height:300px"></div>
+        </div>
+    </body>
 </html>

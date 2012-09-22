@@ -18,12 +18,16 @@ sub startup
     $self->static( Mojolicious::Static->new() );
     push( @{ $self->static->paths }, './html' );
 
+    # Load plugins
+    $self->plugin('DefaultHelpers');
+
     my $r = $self->routes;
 
     $r->route('/')->name('index')->to( controller => 'main', action => 'indexPage' );
 
     $r->route('/FlowsForLast/:timerange')->to( controller => 'main', action => 'simpleFlows' );
     $r->route('/json/FlowsForLast/:timerange')->to( controller => 'main', action => 'simpleFlowsJSON' );
+    $r->route('/json/LastHourTotals/:bucketsize')->to( controller => 'main', action => 'aggergateBucketJSON' );
 
     return;
 }

@@ -267,19 +267,83 @@ sub getSumBucketsForLast
 
 }
 
+
+#
+# Get total ingress/egress packets/bytes/flows for each $bucket_size buckets in the database
+# bounded by start_time and end_time
+#
 sub getSumBucketsForTimeRange
 {
     my $self = shift();
     my ( $bucket_size, $start_time, $end_time ) = @_;
 
     my $ret_list;
-    my $dbh    = $self->_initDB();
-    my $logger = get_logger();
+    my $dbh              = $self->_initDB();
+    my $logger           = get_logger();
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    my $internal_low  = $internal_network->intip();
+    my $internal_high = $internal_network->last_int();
 
     my $sql = qq{
-        SELECT count(*) AS flows,
-               sum(bytes) AS bytes,
-               sum(packets) AS packets
+        SELECT count(*) AS total_flows,
+               round(fl_time/?) * ? AS bucket_time,
+               sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip NOT BETWEEN ? AND ?
+                        THEN 1 ELSE 0
+                    END
+                ) AS egress_flows,
+
+                sum(CASE 
+                    WHEN src_ip NOT BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN 1 ELSE 0
+                    END
+                ) AS ingress_flows,
+
+                sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN 1 ELSE 0
+                    END
+                ) AS internal_flows,
+
+
+               sum(bytes) AS total_bytes,
+               sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip NOT BETWEEN ? AND ?
+                        THEN bytes ELSE 0
+                    END
+                ) AS egress_bytes,
+
+                sum(CASE 
+                    WHEN src_ip NOT BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN bytes ELSE 0
+                    END
+                ) AS ingress_bytes,
+
+                sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN bytes ELSE 0
+                    END
+                ) AS internal_bytes,
+
+               sum(packets) AS total_packets,
+               sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip NOT BETWEEN ? AND ?
+                        THEN packets ELSE 0
+                    END
+                ) AS egress_packets,
+
+                sum(CASE 
+                    WHEN src_ip NOT BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN packets ELSE 0
+                    END
+                ) AS ingress_packets,
+
+                sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN packets ELSE 0
+                    END
+                ) AS internal_packets
         FROM raw_flow
         WHERE
            fl_time >= ? AND fl_time <= ?
@@ -291,8 +355,15 @@ sub getSumBucketsForTimeRange
 
     my $sth = $dbh->prepare($sql) or $logger->fatal( " Failed to prepare: " . $dbh->errstr );
 
-    $sth->execute( $start_time, $end_time, $bucket_size )
-      or $logger->fatal( "failed execute $sql: " . $DBI::errstr );
+    $sth->execute( $bucket_size, $bucket_size, 
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $start_time,  $end_time,      $bucket_size
+    ) or $logger->fatal( "failed execute $sql: " . $DBI::errstr );
 
     while ( my $ref = $sth->fetchrow_hashref )
     {
