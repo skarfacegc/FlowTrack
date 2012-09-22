@@ -9,6 +9,8 @@
         <script type="text/javascript" charset="utf8" src="/js/jquery-1.8.1.min.js"></script>
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"></script>
  <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"></script>
+ <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"></script>
+
 
         <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet">
         <link type="text/css" href="/css/base.css" rel="Stylesheet">
@@ -20,13 +22,29 @@
             
 
                 var options = {
+                    curvedLines: { active: true},
                     lines: { show: true },
-                    points: { show: true },
                     xaxis: {
                         mode: "time",
+                    },
+                    yaxes: 
+                    [
+                        {
+                            tickFormatter: function (val,axis)
+                            {
+                                if (val > 1000000)
+                                  return (val / 1000000).toFixed(axis.tickDecimals) + " MB";
+                                else if (val > 1000)
+                                  return (val / 1000).toFixed(axis.tickDecimals) + " kB";
+                                else
+                                  return val.toFixed(axis.tickDecimals) + " B"; 
+                            }
+                        },
+                        {},
+                    ],
+                    grid: {
+                        borderColor: "#E6E6E6",
                     }
-
-                    
                 };
 
                 $.plot($("#topGraph"), data, options);
@@ -34,9 +52,9 @@
 
                 function onDataReceived(series)
                 {
-                    data = [series];
-                    console.log(data.toString());
-                    $.plot($("#topGraph"), data, options);
+                    series.total_packets.yaxis = 2;
+
+                    $.plot($("#topGraph"), [series.ingress_bytes, series.egress_bytes, series.total_packets], options);
                     setTimeout(getData,10000);
                 }
 
@@ -51,14 +69,14 @@
 
                 }
 
-                setInterval(getData, 10000);
+                setInterval(getData, 5000);
             });
 
         </script>
     </head>
     <body>
         <div class="wrapper">
-            <div id="topGraph" style="width:600px;height:300px"></div>
+            <div id="topGraph"></div>
         </div>
     </body>
 </html>

@@ -21,11 +21,6 @@ our $FT = FT::FlowTrack->new( $DATA_DIR, $INTERNAL_NETWORK );
 sub indexPage
 {
     my $self = shift();
-    my $flow_data = $FT->getSumBucketsForTimeRange( 60, time - 600, time );
-
-    $self->stash( flow_data   => Dumper($flow_data) );
-    $self->stash( total_flows => scalar @$flow_data );
-
     $self->render( template => 'index' );
 
     return;
@@ -95,13 +90,14 @@ sub aggergateBucketJSON
     my $logger = get_logger();
 
     my $bucketsize = $self->param('bucketsize');
-    my $flow_buckets = $FT->getSumBucketsForLast( 60, 30 );
+    my $flow_buckets = $FT->getSumBucketsForLast( 120, 180 );
     my $ret_struct;
 
     # building a datastructure keyed by the field names so we can build a
     # per field list of x,y value pairs (x is always timestamp)
     # this will be turned into the final return list prior to rendering
     my $buckets_by_field;
+    my $smoothed_data;
 
     # build a list per
     foreach my $bucket (@$flow_buckets)
@@ -109,24 +105,32 @@ sub aggergateBucketJSON
         foreach my $field ( keys %$bucket )
         {
             next if ( $field eq "bucket_time" );
-            $buckets_by_field->{$field}{label} = $field unless(exists($buckets_by_field->{$field}));
+
+            if ( !exists( $buckets_by_field->{$field} ) )
+            {
+                my $label = $field;
+                $label =~ s/_/ /g;
+                $buckets_by_field->{$field}{label} = $label;
+            }
 
             # Need to convert to milliseconds and utc
-            my $timestamp = ($bucket->{bucket_time} + $FT->{tz_offset}) * 1000;
+            my $timestamp = ( $bucket->{bucket_time} + $FT->{tz_offset} ) * 1000;
             push( @{ $buckets_by_field->{$field}{data} }, [ $timestamp, $bucket->{$field} ] );
         }
     }
 
-
-
-    foreach my $graph_arrays (keys %$buckets_by_field) 
+    foreach my $field ( keys %$buckets_by_field )
     {
-        push @$ret_struct, $buckets_by_field->{$graph_arrays};
+        # remove the first and last element from each
+        shift @{ $buckets_by_field->{$field}{data} };
+        pop @{ $buckets_by_field->{$field}{data} };
+
     }
 
-    $self->render( { json => $buckets_by_field->{ingress_bytes} } );
+    $self->render( { json => $buckets_by_field } );
 
     return;
 
 }
+
 1;

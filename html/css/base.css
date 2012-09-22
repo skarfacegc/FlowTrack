@@ -20,6 +20,12 @@ body {
 
 #topGraph {
     background-color: white;
-    width:600px;
-    height:300px;
+    width:100%;
+    height:200px;
+}
+
+.tickLabel, .legendLabel {
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 70%;
+
 }
