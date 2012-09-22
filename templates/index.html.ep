@@ -44,15 +44,9 @@
                     }
                 };
 
-                
-
-
                 function onDataReceived(series)
                 {
-                    series.total_packets.yaxis = 2;
-
                     $.plot($("#topGraph"), [series.ingress_bytes, series.egress_bytes], options);
-                    setTimeout(getData,10000);
                 }
 
                 function getData()
@@ -66,7 +60,7 @@
 
                 }
                 getData();
-                setInterval(getData, 5000);
+                setInterval(getData, 120000);
             });
 
         </script>
