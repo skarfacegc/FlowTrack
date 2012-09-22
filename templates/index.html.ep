@@ -4,29 +4,27 @@
     <head>
         <title>
             FlowTrack
-        </title><!-- jQuery -->
+        </title>
 
-        <script type="text/javascript" charset="utf8" src="/js/jquery-1.8.1.min.js"></script>
-        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"></script>
- <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"></script>
- <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"></script>
-
-
+        <script type="text/javascript" charset="utf8" src="/js/jquery-1.8.1.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"> </script>
         <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet">
         <link type="text/css" href="/css/base.css" rel="Stylesheet">
 
-        <script>
+        <script type="text/javascript">
             $(document).ready(function($) 
             {
                 var data = [];
-            
-
-                var options = {
-                    curvedLines: { active: true},
+                    var options = {
                     lines: { show: true },
-                    xaxis: {
-                        mode: "time",
-                    },
+                    xaxes: 
+                    [
+                        {
+                            mode: "time",
+                        },
+                    ],
                     yaxes: 
                     [
                         {
@@ -40,21 +38,20 @@
                                   return val.toFixed(axis.tickDecimals) + " B"; 
                             }
                         },
-                        {},
                     ],
                     grid: {
                         borderColor: "#E6E6E6",
                     }
                 };
 
-                $.plot($("#topGraph"), data, options);
+                
 
 
                 function onDataReceived(series)
                 {
                     series.total_packets.yaxis = 2;
 
-                    $.plot($("#topGraph"), [series.ingress_bytes, series.egress_bytes, series.total_packets], options);
+                    $.plot($("#topGraph"), [series.ingress_bytes, series.egress_bytes], options);
                     setTimeout(getData,10000);
                 }
 
@@ -68,7 +65,7 @@
                      });
 
                 }
-
+                getData();
                 setInterval(getData, 5000);
             });
 
