@@ -5,7 +5,6 @@
 # $foo->[0] = {
 #                  name => "my_field",
 #                  type => "string"
-#                  pk => 1,
 #
 #
 #                  #TODO: Add index support
@@ -34,61 +33,83 @@ my $TABLES;
 #
 # Setup the definition for the raw_flow table
 #
-$TABLES->{"raw_flow"} = [
+$TABLES->{raw_flow} = [
 
     # Key (auto inc)
     {
-       name => "flow_id",
-       type => "INTEGER PRIMARY KEY",
+       name => 'flow_id',
+       type => 'INTEGER PRIMARY KEY',
     },
 
     # Flow Time
     {
-       name => "fl_time",
-       type => "BIGINT NOT NULL",
+       name => 'fl_time',
+       type => 'BIGINT NOT NULL',
     },
 
     # Source IP
     {
-       name => "src_ip",
-       type => "INT",
+       name => 'src_ip',
+       type => 'INT',
     },
 
     # Destination IP
     {
-       name => "dst_ip",
-       type => "INT",
+       name => 'dst_ip',
+       type => 'INT',
     },
 
     # Source Port
     {
-       name => "src_port",
-       type => "INT"
+       name => 'src_port',
+       type => 'INT'
     },
 
     # Destination Port
     {
-       name => "dst_port",
-       type => "INT"
+       name => 'dst_port',
+       type => 'INT'
     },
 
     # Traffic in bytes
     {
-       name => "bytes",
-       type => "INT"
+       name => 'bytes',
+       type => 'INT'
     },
 
     # Packtes in the flow
     {
-       name => "packets",
-       type => "INT"
+       name => 'packets',
+       type => 'INT'
     },
 
     # protocol
     {
-        name => "protocol",
-        type => "INT"
+       name => 'protocol',
+       type => 'INT'
     }
+];
+
+$TABLES->{recent_talkers} = [
+    {
+       name => 'src_ip',
+       type => 'INT',
+    },
+    {
+       name => 'dst_ip',
+       type => 'INT',
+    },
+    {
+       name => 'score',
+       type => 'INT',
+    },
+
+    # TODO: Make primary key setup less dumb.
+    {
+       name => 'last_update',
+       type => 'INT, PRIMARY KEY (src_ip, dst_ip)'
+    }
+
 ];
 
 #
@@ -128,7 +149,7 @@ sub get_field_list
 
     foreach my $field (@$field_list)
     {
-        push( @$field_list, $field->{'name'} );
+        push( @$field_list, $field->{name} );
     }
 
     return $field_list;
@@ -155,14 +176,15 @@ sub get_create_sql
     {
 
         # build the field list
-        push( @$fields, $field->{'name'} . " " . $field->{'type'} );
+        push( @$fields, $field->{'name'} . " " . $field->{type} );
 
         # build the pk list
-        push( @$primary_key, $field->{'name'} )
-          if ( exists( $field->{'pk'} ) && $field->{'pk'} == 1 );
+        push( @$primary_key, $field->{name} )
+          if ( exists( $field->{pk} ) && $field->{pk} == 1 );
     }
 
-    $sql = "CREATE TABLE $table_name (" . join( ',', @$fields );
+    # TODO: Bind params. . . I'm dumb for not using them in the first place
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (" . join( ',', @$fields );
 
     if ( defined($primary_key) )
     {

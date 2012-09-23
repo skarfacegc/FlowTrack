@@ -11,7 +11,7 @@ use Data::Dumper;
 use FT::Schema;
 use Log::Log4perl;
 
-use vars qw($TEST_COUNT $DB_TEST_DIR);
+use vars qw($TEST_COUNT );
 
 # Holds test count
 my $TEST_COUNT;
