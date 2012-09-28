@@ -26,7 +26,7 @@ sub setConf
 
         if ( !-r $config_file )
         {
-            $logger->fatal("Couldn't read " . $config_file);
+            $logger->fatal( "Couldn't read " . $config_file );
             die "Couldn't read " . $config_file;
         }
 
@@ -41,9 +41,15 @@ sub setConf
 
 sub getConf
 {
+    # Try to set a configuration if we don't already have one.
     if ( !defined($oneTrueSelf) )
     {
-        croak "Config not loaded.";
+        setConf();
+
+        if ( !defined($oneTrueSelf) )
+        {
+            croak "Config not loaded.";
+        }
     }
 
     return $oneTrueSelf;
