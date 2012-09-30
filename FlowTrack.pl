@@ -210,8 +210,6 @@ sub runReports
     my $config = FT::Configuration::getConf();
     my $reports = FT::Reporting->new($config);
 
-    $logger->info(Dumper($reports));
-
     while (1)
     {
         # sleep to the next 5 minute boundary

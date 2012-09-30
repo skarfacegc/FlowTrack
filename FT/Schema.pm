@@ -92,11 +92,11 @@ $TABLES->{raw_flow} = [
 
 $TABLES->{recent_talkers} = [
     {
-       name => 'src_ip',
+       name => 'internal_ip',
        type => 'INT',
     },
     {
-       name => 'dst_ip',
+       name => 'external_ip',
        type => 'INT',
     },
     {
@@ -107,7 +107,7 @@ $TABLES->{recent_talkers} = [
     # TODO: Make primary key setup less dumb.
     {
        name => 'last_update',
-       type => 'INT, PRIMARY KEY (src_ip, dst_ip)'
+       type => 'INT, PRIMARY KEY (internal_ip, external_ip)'
     }
 
 ];

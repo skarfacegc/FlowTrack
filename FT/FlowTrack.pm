@@ -37,7 +37,7 @@ sub new
     $self->{dbname} = 'FlowTrack.sqlite';
 
     # ensure we have some defaults
-    $self->{location}         = defined($location)         ? $location         : 'Data';
+    $self->{location} = defined($location) ? $location : 'Data';
     $self->{internal_network} = defined($internal_network) ? $internal_network : '192.168.1.0/24';
 
     # Setup space for connection pools and the database handle

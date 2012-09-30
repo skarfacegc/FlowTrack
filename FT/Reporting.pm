@@ -4,6 +4,7 @@
 package FT::Reporting;
 use strict;
 use warnings;
+use Carp;
 use Log::Log4perl qw{get_logger};
 use FT::Configuration;
 use FT::FlowTrack;
@@ -118,27 +119,13 @@ sub getRecentFlowsByAddress
         #  internal_network_ip-external_network_ip
         my $flow_index;
 
-        # src IP is the internal  - Egress
-        if ( $internal_network->overlaps( $flow->{src_ip_obj} ) == $IP_B_IN_A_OVERLAP )
-        {
-            $flow_index = $flow->{src_ip_obj}->intip() . "-" . $flow->{dst_ip_obj}->intip();
-
-            # Make sure we have some values if undefined
-            $ret_struct->{$flow_index}{egress_bytes}   //= 0;
-            $ret_struct->{$flow_index}{egress_packets} //= 0;
-            $ret_struct->{$flow_index}{egress_flows}   //= 0;
-
-            # Increment bytes packets and flows
-            $ret_struct->{$flow_index}{egress_bytes}   += $flow->{bytes};
-            $ret_struct->{$flow_index}{egress_packets} += $flow->{packets};
-            $ret_struct->{$flow_index}{egress_flows}   += 1;
-
-        }
-
         # dst IP is the internal - Ingress
-        elsif ( $internal_network->overlaps( $flow->{dst_ip_obj} ) == $IP_B_IN_A_OVERLAP )
+        if ( $internal_network->overlaps( $flow->{dst_ip_obj} ) == $IP_B_IN_A_OVERLAP )
         {
-            $flow_index = $flow->{dst_ip_obj}->intip() . "-" . $flow->{src_ip_obj}->intip();
+            $flow_index = $self->buildTrackerKey( $flow->{dst_ip_obj}, $flow->{src_ip_obj} );
+
+            $ret_struct->{$flow_index}{internal_ip} = $flow->{dst_ip_obj};
+            $ret_struct->{$flow_index}{external_ip} = $flow->{src_ip_obj};
 
             # Make sure we have some values if undefined
             $ret_struct->{$flow_index}{ingress_bytes}   //= 0;
@@ -152,12 +139,13 @@ sub getRecentFlowsByAddress
 
         }
 
-        # just assume src for everything that doesn't match the above.  worth an info message
+        # src IP is the internal  - Egress  (also used if neither address is internal)
         else
         {
-            $logger->info("neither src or dst is in internal_network");
+            $flow_index = $self->buildTrackerKey( $flow->{src_ip_obj}, $flow->{dst_ip_obj} );
 
-            $flow_index = $flow->{src_ip_obj}->intip() . "-" . $flow->{dst_ip_obj}->intip();
+            $ret_struct->{$flow_index}{internal_ip} = $flow->{src_ip_obj};
+            $ret_struct->{$flow_index}{external_ip} = $flow->{dst_ip_obj};
 
             # Make sure we have some values if undefined
             $ret_struct->{$flow_index}{egress_bytes}   //= 0;
@@ -173,6 +161,26 @@ sub getRecentFlowsByAddress
     }
 
     return $ret_struct;
+}
+
+# Takes two net::ip objects, returns a string in the form internal-external
+#
+sub buildTrackerKey
+{
+    my $self = shift();
+    my ( $ip_a_obj, $ip_b_obj ) = @_;
+
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    if ( $internal_network->overlaps($ip_a_obj) == $IP_B_IN_A_OVERLAP )
+    {
+        return $ip_a_obj->intip() . "-" . $ip_b_obj->intip();
+    }
+    else
+    {
+        return $ip_b_obj->intip() . "-" . $ip_b_obj->intip();
+    }
+
 }
 
 sub getAllTrackedTalkers
@@ -192,7 +200,8 @@ sub getAllTrackedTalkers
     while ( my $talker_ref = $sth->fetchrow_hashref )
     {
         # the key for this is src_ip-dst_ip to make for quick lookup
-        $ret_struct->{ $talker_ref->{src_ip} . "-" . $talker_ref->{dst_ip} } = $talker_ref;
+        $ret_struct->{ $talker_ref->{internal_ip} . "-" . $talker_ref->{external_ip} } = $talker_ref;
+
     }
 
     return $ret_struct;
@@ -206,7 +215,12 @@ sub updateRecentTalkers
 {
     my $self   = shift();
     my $logger = get_logger();
-    my $insert_list;
+    my $dbh    = $self->_initDB();
+    my $update_list;
+    my $delete_list;
+
+    my $update_sql;
+    my $delete_sql;
 
     # From the raw_flow database
     my $recent_flows_by_addr = $self->getRecentFlowsByAddress();
@@ -214,7 +228,71 @@ sub updateRecentTalkers
     # From the recorded talkers
     my $tracked_talkers = $self->getAllTrackedTalkers();
 
-    #    warn Dumper( $recent_flows_by_addr, $tracked_talkers );
+    # Do the up-votes
+    foreach my $recent_flow ( keys %$recent_flows_by_addr )
+    {
+        if ( exists $tracked_talkers->{$recent_flow} )
+        {
+            $tracked_talkers->{$recent_flow}{score} += $SCORE_INCREMENT;
+            $update_list->{$recent_flow} = $tracked_talkers->{$recent_flow};
+        }
+        else
+        {
+            $tracked_talkers->{$recent_flow}{score}       = $SCORE_INCREMENT;
+            $tracked_talkers->{$recent_flow}{internal_ip} = $recent_flows_by_addr->{$recent_flow}{internal_ip}->intip();
+            $tracked_talkers->{$recent_flow}{external_ip} = $recent_flows_by_addr->{$recent_flow}{external_ip}->intip();
+
+            $update_list->{$recent_flow} = $tracked_talkers->{$recent_flow};
+        }
+    }
+
+    # Do the down-votes and cleanup
+    foreach my $tracked_flow ( keys %$tracked_talkers )
+    {
+        if ( !exists $recent_flows_by_addr->{$tracked_flow} )
+        {
+            # Update the score in the list of tracked talkers
+            # add it do the update list
+            $tracked_talkers->{$tracked_flow}{score} -= $SCORE_DECREMENT;
+            $update_list->{$tracked_flow} = $tracked_talkers->{$tracked_flow};
+        }
+
+        if ( $tracked_talkers->{$tracked_flow}{score} < 0 )
+        {
+            push @$delete_list, $tracked_talkers->{$tracked_flow};
+        }
+    }
+
+    $update_sql = qq{ 
+        INSERT OR REPLACE INTO 
+            recent_talkers (internal_ip, external_ip, score, last_update)
+        VALUES (?,?,?,?)
+    };
+
+    my $update_sth = $dbh->prepare($update_sql) or $logger->logdie("Couldn't prepare: " . $dbh->errstr);
+
+    foreach my $talker_record ( keys %$update_list )
+    {
+
+        $update_sth->execute( $tracked_talkers->{$talker_record}{internal_ip},
+                              $tracked_talkers->{$talker_record}{external_ip},
+                              $tracked_talkers->{$talker_record}{score}, time )
+          or $logger->logdie("insert error: " . $dbh->errstr);
+    }
+
+    $delete_sql = qq{
+        DELETE FROM 
+            recent_talkers
+        WHERE
+            internal_ip=? AND external_ip=?
+    };
+    my $delete_sth = $dbh->prepare($delete_sql) or $logger->logdie("Couldn't prepare: " . $dbh->errstr);
+
+    foreach my $to_delete (@$delete_list)
+    {
+        $delete_sth->execute( $to_delete->{internal_ip}, $to_delete->{external_ip} )
+          or $logger->logdie( "Couldn't Execute: " . $dbh->errstr );
+    }
 }
 
 1;

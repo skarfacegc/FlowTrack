@@ -53,11 +53,11 @@ sub db_tests
     my $reporting = FT::Reporting->new( { data_dir => scalar getTmp(), internal_network=>'10.1.0.0/16'} );
     my $recent_flows;
 
+
     $reporting->storeFlow( buildRawFlows() );
 
 
     $recent_flows = $reporting->getRecentFlowsByAddress(5);
-
 
     # total_flows should == 105 after all the flows in the sample
     # set are summed
@@ -79,7 +79,7 @@ sub db_tests
 
 sub report_tests
 {
-    my $reporting = FT::Reporting->new( { data_dir => scalar getTmp() } );
+    my $reporting = FT::Reporting->new( { data_dir => scalar getTmp(), internal_network=>'10.1.0.0/16' } );
 
     ok( $reporting->runReports(), "Run Reports" );
 
