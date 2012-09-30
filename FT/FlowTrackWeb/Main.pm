@@ -7,6 +7,7 @@ use Carp;
 use FT::FlowTrack;
 use Mojo::Base 'Mojolicious::Controller';
 use POSIX;
+use Data::Dumper;
 
 our $PORT         = 2055;
 our $DATAGRAM_LEN = 1548;
@@ -20,9 +21,7 @@ our $FT = FT::FlowTrack->new( $DATA_DIR, $INTERNAL_NETWORK );
 sub indexPage
 {
     my $self = shift();
-
-    #    $self->render( template => 'index' );
-    $self->simpleFlows();
+    $self->render( template => 'index' );
 
     return;
 }
@@ -81,4 +80,57 @@ sub simpleFlowsJSON
 
     return;
 }
+
+#
+# JSON's up the aggregate bucket datastructure
+#
+sub aggergateBucketJSON
+{
+    my $self   = shift;
+    my $logger = get_logger();
+
+    my $bucketsize = $self->param('bucketsize');
+    my $flow_buckets = $FT->getSumBucketsForLast( 120, 180 );
+    my $ret_struct;
+
+    # building a datastructure keyed by the field names so we can build a
+    # per field list of x,y value pairs (x is always timestamp)
+    # this will be turned into the final return list prior to rendering
+    my $buckets_by_field;
+    my $smoothed_data;
+
+    # build a list per
+    foreach my $bucket (@$flow_buckets)
+    {
+        foreach my $field ( keys %$bucket )
+        {
+            next if ( $field eq "bucket_time" );
+
+            if ( !exists( $buckets_by_field->{$field} ) )
+            {
+                my $label = $field;
+                $label =~ s/_/ /g;
+                $buckets_by_field->{$field}{label} = $label;
+            }
+
+            # Need to convert to milliseconds and utc
+            my $timestamp = ( $bucket->{bucket_time} + $FT->{tz_offset} ) * 1000;
+            push( @{ $buckets_by_field->{$field}{data} }, [ $timestamp, $bucket->{$field} ] );
+        }
+    }
+
+    foreach my $field ( keys %$buckets_by_field )
+    {
+        # remove the first and last element from each
+        shift @{ $buckets_by_field->{$field}{data} };
+        pop @{ $buckets_by_field->{$field}{data} };
+
+    }
+
+    $self->render( { json => $buckets_by_field } );
+
+    return;
+
+}
+
 1;

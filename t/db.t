@@ -9,14 +9,9 @@ use File::Temp;
 use Test::More;
 use Data::Dumper;
 use FT::Schema;
+use Log::Log4perl;
 
-use vars qw($TEST_COUNT $DB_TEST_DIR);
-
-#
-# Get some tmp space
-#
-my $tmpspace = File::Temp->new();
-my $DB_TEST_DIR = File::Temp->newdir( 'FT_TESTXXXXXX', CLEANUP => 0 );
+use vars qw($TEST_COUNT );
 
 # Holds test count
 my $TEST_COUNT;
@@ -31,11 +26,19 @@ test_main();
 
 sub test_main
 {
-    unlink("$DB_TEST_DIR/FlowTrack.sqlite") if ( -e "$DB_TEST_DIR/FlowTrack.sqlite" );
+    # This is here mainly to squash warnings
+    my $empty_log_config = qq{log4perl.rootLogger=FATAL, Screen
+                              log4perl.appender.Screen = Log::Log4perl::Appender::Screen
+                              log4perl.appender.Screen.layout = Log::Log4perl::Layout::SimpleLayout};
+
+    Log::Log4perl::init( \$empty_log_config );
+
+    # Run the tests!
     customObjects();
     defaultObjectTests();
     dbCreation();
-    dbQueryTest();
+    dbRawQueryTests();
+    dbByteBucketQueryTests();
     done_testing($TEST_COUNT);
 
     return;
@@ -98,11 +101,13 @@ sub dbCreation
     #
     # We'll use $dbh and $db_creat for several areas of testing
     #
+    my $db_location = getTmp();
 
-    my $db_creat = FT::FlowTrack->new($DB_TEST_DIR);
+
+    my $db_creat = FT::FlowTrack->new($db_location);
 
     my $dbh = $db_creat->_initDB();
-    ok( -e "$DB_TEST_DIR/FlowTrack.sqlite", "database file exists" );
+    ok( -e "$db_location/FlowTrack.sqlite", "database file exists" );
     is_deeply( $dbh, $db_creat->{dbh}, "object db handle compare" );
     is_deeply( $db_creat->{dbh}, $db_creat->{db_connection_pool}{$$}, "connection pool object storage" );
 
@@ -119,19 +124,26 @@ sub dbCreation
     my @table_list = $dbh->tables();
     ok( grep( {/raw_flow/} @table_list ), "raw_flow created" );
 
+    # Make sure we get back the number of buckets we were expecting  (should be 1000)
+
     $TEST_COUNT += 6;
 
     return;
 }
 
-sub dbQueryTest
+#
+# uses dummy data provided by the build* routines below.
+# the build* routines are not black boxes.  I'm making assumptions
+# about size/count etc.
+sub dbRawQueryTests
 {
-    my $db_creat = FT::FlowTrack->new( $DB_TEST_DIR, "10.0.0.1/32" );
+    my $db_location = getTmp();
+    my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
 
     # Verify creation and retrieval
-    # using canned data generated in buildTestFlows
+    # using canned data generated in buildRawFlows
     ok( !$db_creat->storeFlow(),                                   "Store no flows" );
-    ok( $db_creat->storeFlow( buildTestFlows() ),                  "Store Flow" );
+    ok( $db_creat->storeFlow( buildRawFlows() ),                   "Store Flow" );
     ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 105,       "Flows for last" );
     ok( scalar( @{ $db_creat->getIngressFlowsForLast(5) } ) == 53, "IngressFlowsFlorLast" );
     ok( scalar( @{ $db_creat->getEgressFlowsForLast(5) } ) == 52,  "EgressFlowsFlorLast" );
@@ -158,15 +170,49 @@ sub dbQueryTest
     # now test purging
     ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
 
-    # Get all of the flows currently int he db
-
     $TEST_COUNT += 8;
+
+}
+
+#
+# Do the byte bucket tests
+sub dbByteBucketQueryTests
+{
+    # Need a new DB Dir (so we don't fight with data from the last test)
+    my $db_location = getTmp();
+
+    my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
+    $db_creat->storeFlow( buildFlowsForBucketTest(300) );
+
+    my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, 0, time );
+
+
+    # Now test some bucketing
+    ok( scalar @{$tmp_flows} == 1000, "Buckets in time range" );
+
+    # Make sure the sums work
+    ok( $tmp_flows->[0]{ingress_bytes} == 12288 &&
+        $tmp_flows->[0]{egress_bytes} == 24576 &&
+        $tmp_flows->[0]{total_bytes} == 36864,  "Byte Sum" );
+    
+    ok( $tmp_flows->[0]{ingress_packets} == 768 &&
+        $tmp_flows->[0]{egress_packets} == 1536 &&
+        $tmp_flows->[0]{total_packets} == 2304,  "Packet Sum" );
+
+    # Make sure that the relative call returns something. getting the time alignment correct
+    # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
+    # calls getSumBuckgetsForTimeRange underneath so I've already verified that the base call is
+    # working correctly above.
+    ok( scalar @{ $db_creat->getSumBucketsForLast( 300, 15 ) } > 0, "Buckets for last" );
+
+    $TEST_COUNT += 4;
 }
 
 #
 # Build some sample flows
+# These are for the raw selects (i.e. not trying to bucketize the results.)
 #
-sub buildTestFlows
+sub buildRawFlows
 {
 
     my $flow_list;
@@ -226,6 +272,65 @@ sub buildTestFlows
     }
 
     return $flow_list;
+}
+
+#
+# Generate some nice even buckets
+#
+sub buildFlowsForBucketTest
+{
+    my ($bucket_size) = @_;
+
+    my $flow_list;
+    my $flows_in_each_bucket = 3;       # number of both egress and ingress flows to put in each bucket
+    my $total_flows          = 1000;    # Total number of both egress and ingress flows to return
+    my $current_bucket       = 0;       # holds the current bucket
+    my $i;
+    for ( $i = 0 ; $i < $total_flows ; $i++ )
+    {
+        for ( my $j = 0 ; $j < $flows_in_each_bucket ; $j++ )
+        {
+            my $sample_flow_egress = {
+                fl_time => time - ( $j + $current_bucket ),
+                src_ip   => 167772161,    # 10.0.0.1
+                dst_ip   => 167837697,    # 10.1.0.1
+                src_port => 1024,
+                dst_port => 80,
+                bytes    => 8192,
+                packets  => 512,
+                protocol => 6
+            };
+            my $sample_flow_ingress = {
+                fl_time => time - ( $j + $current_bucket ),
+                src_ip   => 167837697,    # 10.1.0.1
+                dst_ip   => 167772161,    # 10.0.0.1
+                src_port => 1024,
+                dst_port => 80,
+                bytes    => 4096,
+                packets  => 256,
+                protocol => 7
+            };
+
+            push( @$flow_list, $sample_flow_egress );
+            push( @$flow_list, $sample_flow_ingress );
+        }
+
+        $current_bucket += $bucket_size;
+    }
+
+    return $flow_list;
+}
+
+#
+# Get a tmpdir
+#
+sub getTmp
+{
+    #
+    # Get some tmp space
+    #
+    my $tmpspace = File::Temp->new();
+    return File::Temp->newdir( 'TEST_FT_XXXXXX', CLEANUP => 1 );
 }
 
 END

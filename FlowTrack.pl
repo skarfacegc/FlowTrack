@@ -30,13 +30,15 @@ use Data::Dumper;
 use FT::Configuration;
 use FT::FlowCollector;
 use FT::FlowTrackWeb;
+use FT::Reporting;
+
 use POSIX ":sys_wait_h";
 use Mojo::Server;
 use Mojo::Server::Daemon;
 
-
 # get things started.  Init configs/loops etc. Starts all the processes.
 main();
+
 sub main
 {
     my $command_hash;
@@ -75,11 +77,10 @@ sub main
         $logger->debug("Loaded l4p configuration");
     }
 
-
-    # 
+    #
     # Start launching processes
     #
-   
+
     # Daemonize ourself
     if (fork)
     {
@@ -175,7 +176,6 @@ sub main
     exit;
 }
 
-
 # This is the bit that actually does the flow collection
 # is just a net::server listener
 sub startCollector
@@ -207,19 +207,22 @@ sub startWebserver
 sub runReports
 {
     my $logger = get_logger();
+    my $config = FT::Configuration::getConf();
+    my $reports = FT::Reporting->new($config);
+
     while (1)
     {
         # sleep to the next 5 minute boundary
-        sleep 300 - ( time % 300 );
+        sleep( ( $config->{reporting_interval} * 60 ) - ( time % ( $config->{reporting_interval} * 60 ) ) );
 
-        $logger->debug('Running report');
+        $logger->info('Running report');
+        $reports->runReports();
 
-        sleep 300;
+        sleep( $config->{reporting_interval} * 60 );
     }
 
     return;
 }
-
 
 # Writes out pid files
 sub savePIDFile
@@ -243,7 +246,6 @@ sub savePIDFile
 
     return;
 }
-
 
 # Removes the pid files
 sub removePIDFile

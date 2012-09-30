@@ -13,7 +13,11 @@ use FT::Schema;
 use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
+use DateTime;
+use DateTime::TimeZone;
 use vars '$AUTOLOAD';
+
+
 
 #
 # Constructor
@@ -25,15 +29,16 @@ use vars '$AUTOLOAD';
 sub new
 {
     my $class = shift;
+    $class = ref $class if ref $class;
     my $self  = {};
 
     my ( $location, $internal_network ) = @_;
 
-    $self->{dbname} = "FlowTrack.sqlite";
+    $self->{dbname} = 'FlowTrack.sqlite';
 
     # ensure we have some defaults
-    $self->{location}         = defined($location)         ? $location         : "Data";
-    $self->{internal_network} = defined($internal_network) ? $internal_network : "192.168.1.0/24";
+    $self->{location} = defined($location) ? $location : 'Data';
+    $self->{internal_network} = defined($internal_network) ? $internal_network : '192.168.1.0/24';
 
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
@@ -41,6 +46,7 @@ sub new
 
     bless( $self, $class );
 
+    $self->{tz_offset} = DateTime::TimeZone->new( name => 'local' )->offset_for_datetime( DateTime->now() );
     $self->{dbh} = $self->_initDB();
     $self->_createTables();
 
@@ -115,24 +121,16 @@ sub storeFlow
     return 1;
 }
 
-
 #
 # Gets flows for the last x minutes
 #
 # returns an array of flows for the last x minutes
 sub getFlowsForLast
 {
-    my $self    = shift();
-    my ($range) = @_;
-    my $now     = time;
+    my $self = shift();
+    my ($duration) = @_;
 
-    my $start_time;
-    my $end_time;
-
-    $start_time = $now - ( $range * 60 );
-    $end_time = $now;
-
-    return $self->getFlowsInTimeRange( $start_time, $end_time );
+    return $self->getFlowsInTimeRange( time - ( $duration * 60 ), time );
 }
 
 #
@@ -145,13 +143,13 @@ sub getFlowsInTimeRange
     my $dbh = $self->_initDB();
     my $ret_list;
 
-    my $sql = "SELECT * FROM raw_flow WHERE fl_time BETWEEN ? AND ? ORDER BY fl_time";
+    my $sql = 'SELECT * FROM raw_flow WHERE fl_time BETWEEN ? AND ? ORDER BY fl_time';
     my $sth = $dbh->prepare($sql);
     $sth->execute( $start_time, $end_time );
 
-    while ( my $ref = $sth->fetchrow_hashref )
+    while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($ref);
+        push @$ret_list, $self->processFlowRecord($flow_ref);
     }
 
     return $ret_list;
@@ -191,7 +189,7 @@ sub getIngressFlowsInTimeRange
         dst_ip BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( 'failed to prepare:' . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
@@ -200,9 +198,9 @@ sub getIngressFlowsInTimeRange
                    $internal_network->last_int() )
       or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
 
-    while ( my $ref = $sth->fetchrow_hashref )
+    while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($ref);
+        push @$ret_list, $self->processFlowRecord($flow_ref);
     }
 
     return $ret_list;
@@ -243,7 +241,7 @@ sub getEgressFlowsInTimeRange
         dst_ip NOT BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( 'failed to prepare:' . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
@@ -252,9 +250,129 @@ sub getEgressFlowsInTimeRange
                    $internal_network->last_int() )
       or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
 
-    while ( my $ref = $sth->fetchrow_hashref )
+    while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($ref);
+        push @$ret_list, $self->processFlowRecord($flow_ref);
+    }
+
+    return $ret_list;
+}
+
+#
+# Get bucketed flows
+#
+# select count(*), sum(bytes), datetime(fl_time, 'unixepoch')
+#      from raw_flow group by round(fl_time/300) order by round(fl_time/300);
+#
+sub getSumBucketsForLast
+{
+    my $self = shift();
+    my ( $bucket_size, $duration ) = @_;
+
+    return $self->getSumBucketsForTimeRange( $bucket_size, time - ( $duration * 60 ), time );
+
+}
+
+#
+# Get total ingress/egress packets/bytes/flows for each $bucket_size buckets in the database
+# bounded by start_time and end_time
+#
+sub getSumBucketsForTimeRange
+{
+    my $self = shift();
+    my ( $bucket_size, $start_time, $end_time ) = @_;
+
+    my $ret_list;
+    my $dbh              = $self->_initDB();
+    my $logger           = get_logger();
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    my $internal_low  = $internal_network->intip();
+    my $internal_high = $internal_network->last_int();
+
+    my $sql = qq{
+        SELECT count(*) AS total_flows,
+               round(fl_time/?) * ? AS bucket_time,
+               sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip NOT BETWEEN ? AND ?
+                        THEN 1 ELSE 0
+                    END
+                ) AS egress_flows,
+
+                sum(CASE 
+                    WHEN src_ip NOT BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN 1 ELSE 0
+                    END
+                ) AS ingress_flows,
+
+                sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN 1 ELSE 0
+                    END
+                ) AS internal_flows,
+
+
+               sum(bytes) AS total_bytes,
+               sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip NOT BETWEEN ? AND ?
+                        THEN bytes ELSE 0
+                    END
+                ) AS egress_bytes,
+
+                sum(CASE 
+                    WHEN src_ip NOT BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN bytes ELSE 0
+                    END
+                ) AS ingress_bytes,
+
+                sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN bytes ELSE 0
+                    END
+                ) AS internal_bytes,
+
+               sum(packets) AS total_packets,
+               sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip NOT BETWEEN ? AND ?
+                        THEN packets ELSE 0
+                    END
+                ) AS egress_packets,
+
+                sum(CASE 
+                    WHEN src_ip NOT BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN packets ELSE 0
+                    END
+                ) AS ingress_packets,
+
+                sum(CASE 
+                    WHEN src_ip BETWEEN ? AND ? AND dst_ip BETWEEN ? AND ?
+                        THEN packets ELSE 0
+                    END
+                ) AS internal_packets
+        FROM raw_flow
+        WHERE
+           fl_time >= ? AND fl_time <= ?
+        GROUP BY
+           round(fl_time/?)
+        ORDER BY
+           fl_time
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->fatal( ' Failed to prepare: ' . $dbh->errstr );
+
+    $sth->execute(
+                   $bucket_size,  $bucket_size,   $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
+                   $internal_low, $internal_high, $start_time,   $end_time,      $bucket_size
+    ) or $logger->fatal( "failed execute $sql: " . $DBI::errstr );
+
+    while ( my $summary_ref = $sth->fetchrow_hashref )
+    {
+        push @$ret_list, $summary_ref;
     }
 
     return $ret_list;
@@ -286,8 +404,8 @@ sub purgeData
         DELETE FROM raw_flow WHERE fl_time < ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
-    $rows_deleted = $sth->execute($purge_interval) or $logger->fatal( "Delete failed: " . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->fatal( 'failed to prepare:' . $DBI::errstr );
+    $rows_deleted = $sth->execute($purge_interval) or $logger->fatal( 'Delete failed: ' . $DBI::errstr );
     $logger->debug("Purged: $rows_deleted") if ( $rows_deleted > 0 );
 
     return $rows_deleted;
@@ -316,7 +434,7 @@ sub processFlowRecord
             when (/_ip$/)
             {
                 $ret_struct->{$key} = $flow_record->{$key};
-                $ret_struct->{ $key . "_obj" } =
+                $ret_struct->{ $key . '_obj' } =
                   Net::IP->new( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
             }
 
@@ -362,7 +480,7 @@ sub _initDB
 
         my $dbfile = $self->{location} . "/" . $db_name;
 
-        my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbfile", "", "" );
+        my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbfile", '', '' );
 
         if ( defined($dbh) )
         {
@@ -391,15 +509,18 @@ sub _initDB
 sub _createTables
 {
     my ($self) = @_;
-    my $tables = [qw/raw_flow/];
+    my $tables = [qw/raw_flow recent_talkers/];
     my $logger = get_logger();
 
     foreach my $table (@$tables)
     {
+        $logger->debug(Dumper($table));
         if ( !$self->_tableExists($table) )
         {
             my $dbh = $self->_initDB();
             my $sql = $self->get_create_sql($table);
+
+            $logger->debug(Dumper($sql));
 
             if ( !defined($sql) || $sql eq "" )
             {
@@ -448,7 +569,7 @@ sub _checkDirs
     }
 
     # Make sure the directory exists
-    croak( $self->{location} . " strangely absent" )
+    croak( $self->{location} . ' strangely absent' )
       unless ( -d $self->{location} );
 
     return;
