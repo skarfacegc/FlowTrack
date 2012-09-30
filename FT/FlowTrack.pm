@@ -79,7 +79,7 @@ sub storeFlow
     };
 
     my $sth = $dbh->prepare($sql)
-      or $logger->logdie( "Coudln't preapre SQL: " . $dbh->errstr() );
+      or $logger->logconfess( "Coudln't preapre SQL: " . $dbh->errstr() );
 
     foreach my $flow_rec ( @{$flows} )
     {
@@ -111,7 +111,7 @@ sub storeFlow
                                $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip},  $batch->{src_port},
                                $batch->{dst_port}, $batch->{bytes},  $batch->{packets}, $batch->{protocol}
           )
-          or $logger->logdie( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
+          or $logger->logconfess( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
 
         $total_saved += $rows_saved;
     }
@@ -188,14 +188,14 @@ sub getIngressFlowsInTimeRange
         dst_ip BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( 'failed to prepare:' . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
@@ -240,14 +240,14 @@ sub getEgressFlowsInTimeRange
         dst_ip NOT BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( 'failed to prepare:' . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
@@ -357,7 +357,7 @@ sub getSumBucketsForTimeRange
            fl_time
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( ' Failed to prepare: ' . $dbh->errstr );
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( ' Failed to prepare: ' . $dbh->errstr );
 
     $sth->execute(
                    $bucket_size,  $bucket_size,   $internal_low, $internal_high, $internal_low, $internal_high,
@@ -367,7 +367,7 @@ sub getSumBucketsForTimeRange
                    $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
                    $internal_low, $internal_high, $internal_low, $internal_high, $internal_low, $internal_high,
                    $internal_low, $internal_high, $start_time,   $end_time,      $bucket_size
-    ) or $logger->fatal( "failed execute $sql: " . $DBI::errstr );
+    ) or $logger->logconfess( "failed execute $sql: " . $DBI::errstr );
 
     while ( my $summary_ref = $sth->fetchrow_hashref )
     {
@@ -403,8 +403,8 @@ sub purgeData
         DELETE FROM raw_flow WHERE fl_time < ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( 'failed to prepare:' . $DBI::errstr );
-    $rows_deleted = $sth->execute($purge_interval) or $logger->fatal( 'Delete failed: ' . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
+    $rows_deleted = $sth->execute($purge_interval) or $logger->logconfess( 'Delete failed: ' . $DBI::errstr );
     $logger->debug("Purged: $rows_deleted") if ( $rows_deleted > 0 );
 
     return $rows_deleted;
@@ -488,7 +488,7 @@ sub _initDB
         }
         else
         {
-            $logger->logdie( "_initDB failed: $dbfile" . $DBI::errstr );
+            $logger->logconfess( "_initDB failed: $dbfile" . $DBI::errstr );
         }
     }
 }
@@ -501,7 +501,7 @@ sub _initDB
 # aggregation etc.  We'll see.
 #
 # Takes nothing
-# croaks on error
+# fatal on error
 #
 sub _createTables
 {
@@ -521,8 +521,7 @@ sub _createTables
 
             if ( !defined($sql) || $sql eq "" )
             {
-                $logger->fatal("Couldn't create SQL statement for $table");
-                die;
+                $logger->logconfess("Couldn't create SQL statement for $table");
             }
 
             my $sth = $dbh->prepare($sql);
@@ -530,7 +529,7 @@ sub _createTables
 
             if ( !defined($rv) )
             {
-                $logger->logdie($DBI::errstr);
+                $logger->logconfess($DBI::errstr);
             }
         }
     }
@@ -566,7 +565,7 @@ sub _checkDirs
     }
 
     # Make sure the directory exists
-    $logger->logdie( $self->{location} . ' strangely absent' )
+    $logger->logconfess( $self->{location} . ' strangely absent' )
       unless ( -d $self->{location} );
 
     return;

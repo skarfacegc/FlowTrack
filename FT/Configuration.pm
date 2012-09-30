@@ -24,11 +24,10 @@ sub setConf
 
         if ( !-r $config_file )
         {
-            $logger->fatal( "Couldn't read " . $config_file );
-            die "Couldn't read " . $config_file;
+            $logger->logconfess( "Couldn't read " . $config_file );
         }
 
-        $config_struct = YAML::LoadFile($config_file) or $logger->logdie("Error parsing " . $config_file);
+        $config_struct = YAML::LoadFile($config_file) or $logger->logconfess("Error parsing " . $config_file);
 
         $oneTrueSelf = $config_struct;
         $oneTrueSelf->{ConfigFile} = $config_file;
@@ -48,7 +47,7 @@ sub getConf
 
         if ( !defined($oneTrueSelf) )
         {
-            $logger->logdie("Config not loaded.");
+            $logger->logconfess("Config not loaded.");
         }
     }
 
