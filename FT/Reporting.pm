@@ -269,7 +269,7 @@ sub updateRecentTalkers
         VALUES (?,?,?,?)
     };
 
-    my $update_sth = $dbh->prepare($update_sql) or $logger->logdie("Couldn't prepare: " . $dbh->errstr);
+    my $update_sth = $dbh->prepare($update_sql) or $logger->logconfess("Couldn't prepare: " . $dbh->errstr);
 
     foreach my $talker_record ( keys %$update_list )
     {
@@ -277,7 +277,7 @@ sub updateRecentTalkers
         $update_sth->execute( $tracked_talkers->{$talker_record}{internal_ip},
                               $tracked_talkers->{$talker_record}{external_ip},
                               $tracked_talkers->{$talker_record}{score}, time )
-          or $logger->logdie("insert error: " . $dbh->errstr);
+          or $logger->logconfess("insert error: " . $dbh->errstr);
     }
 
     $delete_sql = qq{
@@ -286,12 +286,12 @@ sub updateRecentTalkers
         WHERE
             internal_ip=? AND external_ip=?
     };
-    my $delete_sth = $dbh->prepare($delete_sql) or $logger->logdie("Couldn't prepare: " . $dbh->errstr);
+    my $delete_sth = $dbh->prepare($delete_sql) or $logger->logconfess("Couldn't prepare: " . $dbh->errstr);
 
     foreach my $to_delete (@$delete_list)
     {
         $delete_sth->execute( $to_delete->{internal_ip}, $to_delete->{external_ip} )
-          or $logger->logdie( "Couldn't Execute: " . $dbh->errstr );
+          or $logger->logconfess( "Couldn't Execute: " . $dbh->errstr );
     }
 }
 

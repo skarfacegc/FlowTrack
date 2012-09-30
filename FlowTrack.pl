@@ -234,14 +234,14 @@ sub savePIDFile
     if ( -w $config->{pid_files} )
     {
         open( my $fh, ">", $config->{pid_files} . "/$process.pid" )
-          || croak "Couldn't open " . $config->{pid_files} . "/$process.pid: $!";
+          || $logger->logdie("Couldn't open " . $config->{pid_files} . "/$process.pid: $!");
         print $fh "$pid\n";
         close($fh);
 
     }
     else
     {
-        croak $config->{pid_files} . " is either missing or not writable";
+        $logger->logdie($config->{pid_files} . " is either missing or not writable");
     }
 
     return;

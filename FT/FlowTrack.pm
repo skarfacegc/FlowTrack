@@ -17,8 +17,6 @@ use DateTime;
 use DateTime::TimeZone;
 use vars '$AUTOLOAD';
 
-
-
 #
 # Constructor
 #
@@ -30,14 +28,14 @@ sub new
 {
     my $class = shift;
     $class = ref $class if ref $class;
-    my $self  = {};
+    my $self = {};
 
     my ( $location, $internal_network ) = @_;
 
     $self->{dbname} = 'FlowTrack.sqlite';
 
     # ensure we have some defaults
-    $self->{location} = defined($location) ? $location : 'Data';
+    $self->{location}         = defined($location)         ? $location         : 'Data';
     $self->{internal_network} = defined($internal_network) ? $internal_network : '192.168.1.0/24';
 
     # Setup space for connection pools and the database handle
@@ -81,7 +79,7 @@ sub storeFlow
     };
 
     my $sth = $dbh->prepare($sql)
-      or croak( "Coudln't preapre SQL: " . $dbh->errstr() );
+      or $logger->logdie( "Coudln't preapre SQL: " . $dbh->errstr() );
 
     foreach my $flow_rec ( @{$flows} )
     {
@@ -112,7 +110,8 @@ sub storeFlow
                                { ArrayTupleStatus => \@tuple_status },
                                $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip},  $batch->{src_port},
                                $batch->{dst_port}, $batch->{bytes},  $batch->{packets}, $batch->{protocol}
-          ) or croak( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
+          )
+          or $logger->logdie( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
 
         $total_saved += $rows_saved;
     }
@@ -459,7 +458,6 @@ sub processFlowRecord
 # the DB, stores the handle in the object, and returns the dbh
 #
 # takes self
-# croaks on error
 #
 sub _initDB
 {
@@ -490,8 +488,7 @@ sub _initDB
         }
         else
         {
-            $logger->fatal( "_initDB failed: $dbfile" . $DBI::errstr );
-            croak;
+            $logger->logdie( "_initDB failed: $dbfile" . $DBI::errstr );
         }
     }
 }
@@ -514,13 +511,13 @@ sub _createTables
 
     foreach my $table (@$tables)
     {
-        $logger->debug(Dumper($table));
+        $logger->debug( Dumper($table) );
         if ( !$self->_tableExists($table) )
         {
             my $dbh = $self->_initDB();
             my $sql = $self->get_create_sql($table);
 
-            $logger->debug(Dumper($sql));
+            $logger->debug( Dumper($sql) );
 
             if ( !defined($sql) || $sql eq "" )
             {
@@ -533,8 +530,7 @@ sub _createTables
 
             if ( !defined($rv) )
             {
-                $logger->fatal($DBI::errstr);
-                die;
+                $logger->logdie($DBI::errstr);
             }
         }
     }
@@ -559,6 +555,7 @@ sub _tableExists
 sub _checkDirs
 {
     my $self = shift();
+    my $logger = get_logger();
     my $err;
 
     unless ( -d $self->{location} )
@@ -569,7 +566,7 @@ sub _checkDirs
     }
 
     # Make sure the directory exists
-    croak( $self->{location} . ' strangely absent' )
+    $logger->logdie( $self->{location} . ' strangely absent' )
       unless ( -d $self->{location} );
 
     return;
