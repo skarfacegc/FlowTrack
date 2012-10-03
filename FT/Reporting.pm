@@ -83,7 +83,7 @@ sub runReports
 # more SQL if I need to.
 sub getRecentFlowsByAddress
 {
-    my $self = shift();
+    my $self = shift;
     my ($reporting_interval) = @_;
 
     my $logger = get_logger();
@@ -167,7 +167,7 @@ sub getRecentFlowsByAddress
 #
 sub buildTrackerKey
 {
-    my $self = shift();
+    my $self = shift;
     my ( $ip_a_obj, $ip_b_obj ) = @_;
 
     my $internal_network = Net::IP->new( $self->{internal_network} );
@@ -185,7 +185,7 @@ sub buildTrackerKey
 
 sub getAllTrackedTalkers
 {
-    my $self   = shift();
+    my $self   = shift;
     my $logger = get_logger();
     my $dbh    = $self->_initDB();
     my $ret_struct;
@@ -225,7 +225,7 @@ sub getTrackedTalkerTrafficByInternal
 #
 sub updateRecentTalkers
 {
-    my $self   = shift();
+    my $self   = shift;
     my $logger = get_logger();
     my $dbh    = $self->_initDB();
     my $update_list;
@@ -281,7 +281,7 @@ sub updateRecentTalkers
         VALUES (?,?,?,?)
     };
 
-    my $update_sth = $dbh->prepare($update_sql) or $logger->logconfess("Couldn't prepare: " . $dbh->errstr);
+    my $update_sth = $dbh->prepare($update_sql) or $logger->logconfess( "Couldn't prepare: " . $dbh->errstr );
 
     foreach my $talker_record ( keys %$update_list )
     {
@@ -289,7 +289,7 @@ sub updateRecentTalkers
         $update_sth->execute( $tracked_talkers->{$talker_record}{internal_ip},
                               $tracked_talkers->{$talker_record}{external_ip},
                               $tracked_talkers->{$talker_record}{score}, time )
-          or $logger->logconfess("insert error: " . $dbh->errstr);
+          or $logger->logconfess( "insert error: " . $dbh->errstr );
     }
 
     $delete_sql = qq{
@@ -298,7 +298,7 @@ sub updateRecentTalkers
         WHERE
             internal_ip=? AND external_ip=?
     };
-    my $delete_sth = $dbh->prepare($delete_sql) or $logger->logconfess("Couldn't prepare: " . $dbh->errstr);
+    my $delete_sth = $dbh->prepare($delete_sql) or $logger->logconfess( "Couldn't prepare: " . $dbh->errstr );
 
     foreach my $to_delete (@$delete_list)
     {

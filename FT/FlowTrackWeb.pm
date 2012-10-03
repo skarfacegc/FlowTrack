@@ -12,7 +12,7 @@ use vars '$AUTOLOAD';
 
 sub startup
 {
-    my $self = shift();
+    my $self = shift;
 
     # Serve up the static pages
     $self->static( Mojolicious::Static->new() );
