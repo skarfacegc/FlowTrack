@@ -15,7 +15,7 @@ sub setConf
 
     if ( !defined $oneTrueSelf )
     {
-        my $config_file = shift();
+        my $config_file = shift;
         my $config_struct;
         my $ret_struct;
         my $logger = get_logger();

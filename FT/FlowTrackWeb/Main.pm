@@ -20,7 +20,7 @@ our $FT = FT::FlowTrack->new( $DATA_DIR, $INTERNAL_NETWORK );
 
 sub indexPage
 {
-    my $self = shift();
+    my $self = shift;
     $self->render( template => 'index' );
 
     return;
@@ -28,7 +28,7 @@ sub indexPage
 
 sub simpleFlows
 {
-    my $self = shift();
+    my $self = shift;
 
     my ($timerange) = defined( $self->param('timerange') ) ? $self->param('timerange') : 1;
 
@@ -42,7 +42,7 @@ sub simpleFlows
 
 sub simpleFlowsJSON
 {
-    my $self   = shift();
+    my $self   = shift;
     my $logger = get_logger();
 
     my ($timerange) = $self->param('timerange');
@@ -131,6 +131,14 @@ sub aggergateBucketJSON
 
     return;
 
+}
+
+sub talkerGraphsJSON
+{
+    my $self = shift;
+    my $logger = get_logger();
+
+    
 }
 
 1;

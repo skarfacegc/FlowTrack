@@ -126,7 +126,7 @@ sub storeFlow
 # returns an array of flows for the last x minutes
 sub getFlowsForLast
 {
-    my $self = shift();
+    my $self = shift;
     my ($duration) = @_;
 
     return $self->getFlowsInTimeRange( time - ( $duration * 60 ), time );
@@ -137,7 +137,7 @@ sub getFlowsForLast
 #
 sub getFlowsInTimeRange
 {
-    my $self = shift();
+    my $self = shift;
     my ( $start_time, $end_time ) = @_;
     my $dbh = $self->_initDB();
     my $ret_list;
@@ -159,7 +159,7 @@ sub getFlowsInTimeRange
 #
 sub getIngressFlowsForLast
 {
-    my $self = shift();
+    my $self = shift;
     my ($duration) = @_;
 
     return $self->getIngressFlowsInTimeRange( time - ( $duration * 60 ), time );
@@ -171,7 +171,7 @@ sub getIngressFlowsForLast
 #
 sub getIngressFlowsInTimeRange
 {
-    my $self = shift();
+    my $self = shift;
     my ( $start_time, $end_time ) = @_;
     my $logger = get_logger();
     my $dbh    = $self->_initDB();
@@ -210,7 +210,7 @@ sub getIngressFlowsInTimeRange
 #
 sub getEgressFlowsForLast
 {
-    my $self = shift();
+    my $self = shift;
     my ($duration) = @_;
 
     return $self->getEgressFlowsInTimeRange( time - ( $duration * 60 ), time );
@@ -221,7 +221,7 @@ sub getEgressFlowsForLast
 #
 sub getEgressFlowsInTimeRange
 {
-    my $self = shift();
+    my $self = shift;
     my ( $start_time, $end_time ) = @_;
     my $dbh    = $self->_initDB();
     my $logger = get_logger();
@@ -265,7 +265,7 @@ sub getEgressFlowsInTimeRange
 #
 sub getSumBucketsForLast
 {
-    my $self = shift();
+    my $self = shift;
     my ( $bucket_size, $duration ) = @_;
 
     return $self->getSumBucketsForTimeRange( $bucket_size, time - ( $duration * 60 ), time );
@@ -278,7 +278,7 @@ sub getSumBucketsForLast
 #
 sub getSumBucketsForTimeRange
 {
-    my $self = shift();
+    my $self = shift;
     my ( $bucket_size, $start_time, $end_time ) = @_;
 
     my $ret_list;
@@ -384,7 +384,7 @@ sub getSumBucketsForTimeRange
 #
 sub purgeData
 {
-    my $self             = shift();
+    my $self             = shift;
     my ($purge_interval) = @_;
     my $dbh              = $self->_initDB();
     my $logger           = get_logger();
@@ -416,7 +416,7 @@ sub purgeData
 # returns the same record with some data conversion done (Net::IP Objects, converted port #s etc)
 sub processFlowRecord
 {
-    my $self = shift();
+    my $self = shift;
     my ($flow_record) = @_;
     my $ret_struct;
 
@@ -540,7 +540,7 @@ sub _createTables
 # returns 1 if the named table exists
 sub _tableExists
 {
-    my $self = shift();
+    my $self = shift;
     my ($table_name) = @_;
 
     my $dbh = $self->_initDB();
@@ -553,7 +553,7 @@ sub _tableExists
 # Check to make sure the data directory exists, if not, create it.
 sub _checkDirs
 {
-    my $self = shift();
+    my $self = shift;
     my $logger = get_logger();
     my $err;
 
@@ -581,7 +581,7 @@ sub AUTOLOAD
 
     # Need to shift off self.  Dont't think that FT::Schema is going to need it
     # but I'm not sure.  Either way, we want it off of @_;
-    my $self = shift();
+    my $self = shift;
 
     given ($AUTOLOAD)
     {
