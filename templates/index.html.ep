@@ -63,11 +63,18 @@
                 setInterval(getData, 120000);
             });
 
+
+            
+
         </script>
     </head>
     <body>
         <div class="wrapper">
             <div id="topGraph"></div>
+            <div id="talkerGrid"></div>
+        </div>
+        <div>
+
         </div>
     </body>
 </html>
