@@ -5,6 +5,6 @@ then
     source ~/perl5/perlbrew/etc/bashrc
 fi
 
-cover --delete
+cover --delete 
 PERL5OPT=-MDevel::Cover prove --verbose
-cover --launch
+cover
