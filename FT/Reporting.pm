@@ -207,6 +207,18 @@ sub getAllTrackedTalkers
     return $ret_struct;
 }
 
+
+# 
+# This routine gets a list of tracked talkers (along with the last x minutes of bytes/packets/flows)
+# grouped by the internal address  The top level node also contains counts of bytes/packets/flows for all
+# of the flows for that address
+#
+sub getTrackedTalkerTrafficByInternal
+{
+    my $self = shift;
+    my $logger = get_logger();
+}
+
 #
 # Updates scores and adds new talkers
 # to the recent_talkers database
