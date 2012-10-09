@@ -32,7 +32,7 @@ sub test_main
 
     # Run the tests!
     object_tests();
-    db_tests();
+    graphGrid_tests();
     done_testing($TEST_COUNT);
 
     return;
@@ -48,7 +48,7 @@ sub object_tests
     $TEST_COUNT += 2;
 }
 
-sub db_tests
+sub graphGrid_tests
 {
     my $reporting = FT::Reporting->new( { data_dir => scalar getTmp(), internal_network=>'10.1.0.0/16'} );
     my $recent_flows;
@@ -71,10 +71,13 @@ sub db_tests
 
     ok( ( $total_flows == 105 ), 'Recent flows count');
 
-    $reporting->updateRecentTalkers(); 
+    # TODO: Improve these
+    ok( $reporting->updateRecentTalkers(), 'UpdateRecentTalkers'); 
+    ok( $reporting->getAllTrackedTalkers(), 'GetAllTrackedTalkers');
 
+    $reporting->getTalkerTrafficForLast();
 
-    $TEST_COUNT += 1;
+    $TEST_COUNT += 3;
 }
 
 sub report_tests

@@ -194,8 +194,8 @@ sub getAllTrackedTalkers
         SELECT * FROM recent_talkers
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->warning( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
-    $sth->execute() or $logger->warning( "Couldn't execute" . $dbh->errstr );
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
+    $sth->execute() or $logger->logconfess( "Couldn't execute" . $dbh->errstr );
 
     while ( my $talker_ref = $sth->fetchrow_hashref )
     {
@@ -213,16 +213,47 @@ sub getAllTrackedTalkers
 # grouped by the internal address  The top level node also contains counts of bytes/packets/flows for all
 # of the flows for that address
 #
-sub getTrackedTalkerTrafficByInternal
+sub getTalkerTrafficForLast
 {
     my $self = shift;
+
     my $logger = get_logger();
+    my $dbh = $self->_initDB();
+    my $ret_struct;
+
+    my $talker_sql = qq{
+        SELECT * FROM recent_talkers 
+        ORDER BY 
+            score DESC, 
+            internal_ip ASC
+    };
+
+    my $ingress_flow_sql = qq{
+        SELECT 
+            sum(bytes) as ingress_bytes, 
+            count(*) as ingress_flows, 
+            sum(packets) as ingress_packets,
+        FROM raw_flow
+        WHERE
+            src_ip = ? AND dst_ip = ?
+            
+    }
+
+    my $sth = $dbh->prepare($talker_sql) or $logger->logconfess("Couldn't prepare:\n $sql" . $dbh->errstr);
+    $sth->execute();
+
+    while( my $talker_ref = $sth->fetchrow_hashref )
+    {
+
+    }
+
 }
 
 #
 # Updates scores and adds new talkers
 # to the recent_talkers database
 #
+# TODO: Break this up a bit
 sub updateRecentTalkers
 {
     my $self   = shift;
@@ -305,6 +336,8 @@ sub updateRecentTalkers
         $delete_sth->execute( $to_delete->{internal_ip}, $to_delete->{external_ip} )
           or $logger->logconfess( "Couldn't Execute: " . $dbh->errstr );
     }
+
+    return 1;
 }
 
 1;
