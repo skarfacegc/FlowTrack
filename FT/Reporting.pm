@@ -207,8 +207,7 @@ sub getAllTrackedTalkers
     return $ret_struct;
 }
 
-
-# 
+#
 # This routine gets a list of tracked talkers (along with the last x minutes of bytes/packets/flows)
 # grouped by the internal address  The top level node also contains counts of bytes/packets/flows for all
 # of the flows for that address
@@ -218,7 +217,7 @@ sub getTalkerTrafficForLast
     my $self = shift;
 
     my $logger = get_logger();
-    my $dbh = $self->_initDB();
+    my $dbh    = $self->_initDB();
     my $ret_struct;
 
     my $talker_sql = qq{
@@ -235,14 +234,13 @@ sub getTalkerTrafficForLast
             sum(packets) as ingress_packets,
         FROM raw_flow
         WHERE
-            src_ip = ? AND dst_ip = ?
-            
-    }
+            src_ip = ? AND dst_ip = ?      
+    };
 
-    my $sth = $dbh->prepare($talker_sql) or $logger->logconfess("Couldn't prepare:\n $sql" . $dbh->errstr);
+    my $sth = $dbh->prepare($talker_sql) or $logger->logconfess( "Couldn't prepare:\n $talker_sql" . $dbh->errstr );
     $sth->execute();
 
-    while( my $talker_ref = $sth->fetchrow_hashref )
+    while ( my $talker_ref = $sth->fetchrow_hashref )
     {
 
     }
