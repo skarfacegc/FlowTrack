@@ -511,7 +511,7 @@ sub _createTables
 
     foreach my $table (@$tables)
     {
-        $logger->debug( Dumper($table) );
+        $logger->debug( "Check/Create: " . $table );
         if ( !$self->_tableExists($table) )
         {
             my $dbh = $self->_initDB();
