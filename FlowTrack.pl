@@ -72,7 +72,7 @@ sub main
     my $config = FT::Configuration::getConf();
     if ( exists $config->{logging_conf} && -r $config->{logging_conf} )
     {
-        Log::Log4perl->init( $config->{logging_conf} );
+        Log::Log4perl->init_and_watch( $config->{logging_conf} );
         $logger = get_logger();
         $logger->debug("Loaded l4p configuration");
     }
