@@ -83,6 +83,7 @@ sub simpleFlowsJSON
 
 #
 # JSON's up the aggregate bucket datastructure
+# Used for the top level graph  (should probably adjust be be more general)
 #
 sub aggergateBucketJSON
 {
@@ -92,6 +93,8 @@ sub aggergateBucketJSON
     my $bucketsize = $self->param('bucketsize');
     my $flow_buckets = $FT->getSumBucketsForLast( 120, 180 );
     my $ret_struct;
+
+    $logger->debug(Dumper($flow_buckets));
 
     # building a datastructure keyed by the field names so we can build a
     # per field list of x,y value pairs (x is always timestamp)
