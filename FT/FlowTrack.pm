@@ -276,6 +276,23 @@ sub getSumBucketsForLast
 # Get total ingress/egress packets/bytes/flows for each $bucket_size buckets in the database
 # bounded by start_time and end_time
 #
+# returns array of:
+# {
+#   'internal_flows' => 55,
+#   'internal_bytes' => 30570,
+#   'total_packets' => 783,
+#   'total_bytes' => 93701,
+#   'total_flows' => 156,
+#   'egress_bytes' => 34452,
+#   'egress_flows' => 64,
+#   'ingress_flows' => 37,
+#   'internal_packets' => 180,
+#   'ingress_bytes' => 28679,
+#   'egress_packets' => 360,
+#   'bucket_time' => '1356273960',  
+#   'ingress_packets' => 243
+# },
+#
 sub getSumBucketsForTimeRange
 {
     my $self = shift;
