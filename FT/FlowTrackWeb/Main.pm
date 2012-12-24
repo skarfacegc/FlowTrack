@@ -94,7 +94,7 @@ sub aggergateBucketJSON
     my $flow_buckets = $FT->getSumBucketsForLast( 120, 180 );
     my $ret_struct;
 
-    $logger->debug(Dumper($flow_buckets));
+    
 
     # building a datastructure keyed by the field names so we can build a
     # per field list of x,y value pairs (x is always timestamp)
