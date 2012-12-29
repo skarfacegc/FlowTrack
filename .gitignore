@@ -6,6 +6,7 @@ TAGS
 *.sqlite
 *sublime-workspace
 portlist.xml
+Profiling/
 Data/
 .perlcriticrc
 cover_db/*
