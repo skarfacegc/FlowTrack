@@ -5,6 +5,7 @@
 TAGS
 *.sqlite
 portlist.xml
+Profiling/
 Data/
 .perlcriticrc
 cover_db/*
