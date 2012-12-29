@@ -140,7 +140,7 @@ sub getFlowsInTimeRange
 {
     my $self = shift;
     my ( $start_time, $end_time, $skip_object_creation ) = @_;
-    my $dbh = $self->_initDB();
+    my $dbh    = $self->_initDB();
     my $logger = get_logger();
     my $ret_list;
 
@@ -181,7 +181,7 @@ sub getIngressFlowsForLast
 sub getIngressFlowsInTimeRange
 {
     my $self = shift;
-    my ( $start_time, $end_time) = @_;
+    my ( $start_time, $end_time, $skip_object_creation ) = @_;
     my $logger = get_logger();
     my $dbh    = $self->_initDB();
     my $ret_list;
@@ -208,7 +208,72 @@ sub getIngressFlowsInTimeRange
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($flow_ref);
+        if ( defined($skip_object_creation) && $skip_object_creation == 1 )
+        {
+            push @$ret_list, $flow_ref;
+        }
+        else
+        {
+            push @$ret_list, $self->processFlowRecord($flow_ref);
+        }
+    }
+
+    return $ret_list;
+}
+
+#
+# Return the list of internal flows for the last x minutes
+#
+sub getInternalFlowsForLast
+{
+    my $self = shift;
+    my ($duration) = @_;
+
+    return $self->getInternalFlowsInTimeRange( time - ( $duration * 60 ), time );
+
+}
+
+#
+# return internal flows for the given time range
+#
+sub getInternalFlowsInTimeRange
+{
+    my $self = shift;
+    my ( $start_time, $end_time, $skip_object_creation ) = @_;
+    my $logger = get_logger();
+    my $dbh    = $self->_initDB();
+    my $ret_list;
+
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    my $sql = qq{
+        SELECT * FROM raw_flow WHERE 
+        fl_time >= ? AND fl_time <= ?
+        AND
+        src_ip BETWEEN ? AND ?
+        AND
+        dst_ip BETWEEN ? AND ?
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
+
+    $sth->execute( $start_time, $end_time,
+                   $internal_network->intip(),
+                   $internal_network->last_int(),
+                   $internal_network->intip(),
+                   $internal_network->last_int() )
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
+
+    while ( my $flow_ref = $sth->fetchrow_hashref )
+    {
+        if ( defined($skip_object_creation) && $skip_object_creation == 1 )
+        {
+            push @$ret_list, $flow_ref;
+        }
+        else
+        {
+            push @$ret_list, $self->processFlowRecord($flow_ref);
+        }
     }
 
     return $ret_list;
@@ -231,7 +296,7 @@ sub getEgressFlowsForLast
 sub getEgressFlowsInTimeRange
 {
     my $self = shift;
-    my ( $start_time, $end_time ) = @_;
+    my ( $start_time, $end_time, $skip_object_creation ) = @_;
     my $dbh    = $self->_initDB();
     my $logger = get_logger();
     my $ret_list;
@@ -260,7 +325,15 @@ sub getEgressFlowsInTimeRange
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($flow_ref);
+        if ( defined($skip_object_creation) && $skip_object_creation == 1 )
+        {
+            push @$ret_list, $flow_ref;
+        }
+        else
+        {
+            push @$ret_list, $self->processFlowRecord($flow_ref);
+        }
+
     }
 
     return $ret_list;
@@ -316,8 +389,6 @@ sub getSumBucketsForTimeRange
     # Figure out what our "internal" range is
     # used to determine ingress/egress/and internal traffic
     my $internal_network = Net::IP->new( $self->{internal_network} );
-    my $internal_low     = $internal_network->intip();
-    my $internal_high    = $internal_network->last_int();
 
     #what's our first bucket?
     $bucket_time = calcBucketTime( $start_time, $bucket_size );
@@ -345,65 +416,63 @@ sub getSumBucketsForTimeRange
         $bucket_time += $bucket_size;
     }
 
-    # Get the flows (skipping object creation)
-    my $flows = $self->getFlowsInTimeRange( $start_time, $end_time, 1 );
+    # Load the flows, skip the IP object creation
+    #
+    # splitting on the internal, egress, ingress using sql as the comparison speed
+    # was killing perf perl side.
+    #
+    my $internal_flows = $self->getInternalFlowsInTimeRange( $start_time, $end_time, 1 );
+    my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time, 1 );
+    my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time, 1 );
 
-    # Loop through the flows and update the buckets created above
-    #TODO: cleanup the internal/egress stuff
-    foreach my $flow (@$flows)
+
+    # Update internal flow counters
+    foreach my $flow (@$internal_flows)
     {
-        my $src_ip = $flow->{src_ip};
-        my $dst_ip = $flow->{dst_ip};
         my $bucket = calcBucketTime( $flow->{fl_time}, $bucket_size );
 
-        # If the source is inside our network
-        if ( $src_ip > $internal_low && $src_ip < $internal_high )
-        {
-            # ... and the dst_ip is also in our network INTERNAL TRAFFIC
-            if ( $dst_ip > $internal_low && $dst_ip < $internal_high )
-            {
-                $buckets_by_time->{$bucket}{internal_flows}++;
-                $buckets_by_time->{$bucket}{internal_bytes}   += $flow->{bytes};
-                $buckets_by_time->{$bucket}{internal_packets} += $flow->{packets};
-            }
-
-            # ... otherwise EGRESS TRAFFIC
-            else
-            {
-                $buckets_by_time->{$bucket}{egress_flows}++;
-                $buckets_by_time->{$bucket}{egress_bytes}   += $flow->{bytes};
-                $buckets_by_time->{$bucket}{egress_packets} += $flow->{packets};
-            }
-        }
-
-        # If the dst ip is inside our network
-        elsif ( $dst_ip > $internal_low && $dst_ip < $internal_high )
-        {
-            # ... and the src_ip is inside our network INTERNAL TRAFFIC
-            if ( $src_ip > $internal_low && $src_ip < $internal_high )
-            {
-                $buckets_by_time->{$bucket}{internal_flows}++;
-                $buckets_by_time->{$bucket}{internal_bytes}   += $flow->{bytes};
-                $buckets_by_time->{$bucket}{internal_packets} += $flow->{packets};
-            }
-
-            # ... otherwise INGRESS TRAFFIC
-            else
-            {
-                $buckets_by_time->{$bucket}{ingress_flows}++;
-                $buckets_by_time->{$bucket}{ingress_bytes}   += $flow->{bytes};
-                $buckets_by_time->{$bucket}{ingress_packets} += $flow->{packets};
-            }
-        }
-        else
-        {
-            #$logger->warn("Got a flow that didn't have a src or dst in the configured internal network");
-        }
+        $buckets_by_time->{$bucket}{internal_flows}++;
+        $buckets_by_time->{$bucket}{internal_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{internal_packets} += $flow->{packets};
 
         # Update the global counters
         $buckets_by_time->{$bucket}{total_flows}++;
         $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
         $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
+
+    }
+
+    # update ingress flow counters
+    foreach my $flow (@$ingress_flows)
+    {
+        my $bucket = calcBucketTime( $flow->{fl_time}, $bucket_size );
+
+        $buckets_by_time->{$bucket}{ingress_flows}++;
+        $buckets_by_time->{$bucket}{ingress_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{ingress_packets} += $flow->{packets};
+
+        # Update the global counters
+        $buckets_by_time->{$bucket}{total_flows}++;
+        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
+
+    }
+
+
+    # update egress flow counters
+    foreach my $flow (@$egress_flows)
+    {
+        my $bucket = calcBucketTime( $flow->{fl_time}, $bucket_size );
+
+        $buckets_by_time->{$bucket}{egress_flows}++;
+        $buckets_by_time->{$bucket}{egress_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{egress_packets} += $flow->{packets};
+
+        # Update the global counters
+        $buckets_by_time->{$bucket}{total_flows}++;
+        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
+
     }
 
     # build our return list
