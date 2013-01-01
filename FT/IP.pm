@@ -1,11 +1,10 @@
 package FT::IP;
 use warnings;
 use strict;
-use Memoize;
 use Net::IP;
+use Memoize;
 
 memoize('getIPObj');
-
 sub getIPObj
 {
     my ($ip) = @_;
