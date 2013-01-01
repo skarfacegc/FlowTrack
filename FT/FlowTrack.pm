@@ -139,7 +139,7 @@ sub getFlowsForLast
 sub getFlowsInTimeRange
 {
     my $self = shift;
-    my ( $start_time, $end_time, $skip_object_creation ) = @_;
+    my ( $start_time, $end_time ) = @_;
     my $dbh    = $self->_initDB();
     my $logger = get_logger();
     my $ret_list;
@@ -150,14 +150,7 @@ sub getFlowsInTimeRange
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        if ( defined($skip_object_creation) && $skip_object_creation == 1 )
-        {
-            push @$ret_list, $flow_ref;
-        }
-        else
-        {
-            push @$ret_list, $self->processFlowRecord($flow_ref);
-        }
+        push @$ret_list, $flow_ref;
     }
 
     return $ret_list;
@@ -181,7 +174,7 @@ sub getIngressFlowsForLast
 sub getIngressFlowsInTimeRange
 {
     my $self = shift;
-    my ( $start_time, $end_time, $skip_object_creation ) = @_;
+    my ( $start_time, $end_time ) = @_;
     my $logger = get_logger();
     my $dbh    = $self->_initDB();
     my $ret_list;
@@ -208,14 +201,7 @@ sub getIngressFlowsInTimeRange
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        if ( defined($skip_object_creation) && $skip_object_creation == 1 )
-        {
-            push @$ret_list, $flow_ref;
-        }
-        else
-        {
-            push @$ret_list, $self->processFlowRecord($flow_ref);
-        }
+        push @$ret_list, $flow_ref;
     }
 
     return $ret_list;
@@ -239,7 +225,7 @@ sub getInternalFlowsForLast
 sub getInternalFlowsInTimeRange
 {
     my $self = shift;
-    my ( $start_time, $end_time, $skip_object_creation ) = @_;
+    my ( $start_time, $end_time ) = @_;
     my $logger = get_logger();
     my $dbh    = $self->_initDB();
     my $ret_list;
@@ -266,14 +252,7 @@ sub getInternalFlowsInTimeRange
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        if ( defined($skip_object_creation) && $skip_object_creation == 1 )
-        {
-            push @$ret_list, $flow_ref;
-        }
-        else
-        {
-            push @$ret_list, $self->processFlowRecord($flow_ref);
-        }
+        push @$ret_list, $flow_ref;
     }
 
     return $ret_list;
@@ -296,7 +275,7 @@ sub getEgressFlowsForLast
 sub getEgressFlowsInTimeRange
 {
     my $self = shift;
-    my ( $start_time, $end_time, $skip_object_creation ) = @_;
+    my ( $start_time, $end_time ) = @_;
     my $dbh    = $self->_initDB();
     my $logger = get_logger();
     my $ret_list;
@@ -325,15 +304,7 @@ sub getEgressFlowsInTimeRange
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        if ( defined($skip_object_creation) && $skip_object_creation == 1 )
-        {
-            push @$ret_list, $flow_ref;
-        }
-        else
-        {
-            push @$ret_list, $self->processFlowRecord($flow_ref);
-        }
-
+        push @$ret_list, $flow_ref;
     }
 
     return $ret_list;
@@ -371,7 +342,7 @@ sub getSumBucketsForLast
 #   'internal_packets' => 180,
 #   'ingress_bytes' => 28679,
 #   'egress_packets' => 360,
-#   'bucket_time' => '1356273960',  
+#   'bucket_time' => '1356273960',
 #   'ingress_packets' => 243
 # },
 #
@@ -421,10 +392,9 @@ sub getSumBucketsForTimeRange
     # splitting on the internal, egress, ingress using sql as the comparison speed
     # was killing perf perl side.
     #
-    my $internal_flows = $self->getInternalFlowsInTimeRange( $start_time, $end_time, 1 );
-    my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time, 1 );
-    my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time, 1 );
-
+    my $internal_flows = $self->getInternalFlowsInTimeRange( $start_time, $end_time);
+    my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time);
+    my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time);
 
     # Update internal flow counters
     foreach my $flow (@$internal_flows)
@@ -528,42 +498,6 @@ sub purgeData
     return $rows_deleted;
 }
 
-#
-# This routine cleans up a single FlowRecord (select * from the raw_flow table)
-# takes a hashref representing a single record from the raw_flow table;
-# returns the same record with some data conversion done (Net::IP Objects, converted port #s etc)
-sub processFlowRecord
-{
-    my $self = shift;
-    my ($flow_record) = @_;
-    my $ret_struct;
-
-    foreach my $key ( keys %{$flow_record} )
-    {
-
-        # Do the data conversion
-        given ($key)
-        {
-
-            #IP Addresses
-            # Want to leave the original address there as well, in case we can't
-            # get to the object
-            when (/_ip$/)
-            {
-                $ret_struct->{$key} = $flow_record->{$key};
-                $ret_struct->{ $key . '_obj' } =
-                  Net::IP->new( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
-            }
-
-            # if we don't do anything else, just copy the data
-            default { $ret_struct->{$key} = $flow_record->{$key} }
-
-        }
-    }
-
-    return $ret_struct;
-
-}
 
 #
 # "Private" methods below.  Not stopping folks from calling these, but they're really not interesting

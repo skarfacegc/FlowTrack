@@ -4,6 +4,7 @@ use warnings;
 use Log::Log4perl qw(get_logger);
 use Carp;
 
+use FT::IP;
 use FT::FlowTrack;
 use Mojo::Base 'Mojolicious::Controller';
 use POSIX;
@@ -64,11 +65,12 @@ sub simpleFlowsJSON
             my ( $time, $microsecs ) = split( /\./, $flow->{fl_time} );
             my $timestamp = strftime( "%r", localtime($time) );
 
+            my $src_ip_obj = FT::IP::getIPObj( $flow->{src_ip} );
+            my $dst_ip_obj = FT::IP::getIPObj( $flow->{dst_ip} );
+
             my $row_struct = [
-                               $timestamp,        $flow->{src_ip_obj}->ip(),
-                               $flow->{src_port}, $flow->{dst_ip_obj}->ip(),
-                               $flow->{dst_port}, $flow->{protocol},
-                               $flow->{bytes},    $flow->{packets}
+                               $timestamp,        $src_ip_obj->ip(), $flow->{src_port}, $dst_ip_obj->ip(),
+                               $flow->{dst_port}, $flow->{protocol}, $flow->{bytes},    $flow->{packets}
             ];
 
             push( @{ $ret_struct->{aaData} }, $row_struct );
