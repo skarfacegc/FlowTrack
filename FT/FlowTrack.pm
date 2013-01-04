@@ -394,9 +394,9 @@ sub getSumBucketsForTimeRange
     # splitting on the internal, egress, ingress using sql as the comparison speed
     # was killing perf perl side.
     #
-    my $internal_flows = $self->getInternalFlowsInTimeRange( $start_time, $end_time);
-    my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time);
-    my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time);
+    my $internal_flows = $self->getInternalFlowsInTimeRange( $start_time, $end_time );
+    my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time );
+    my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time );
 
     # Update internal flow counters
     foreach my $flow (@$internal_flows)
@@ -429,7 +429,6 @@ sub getSumBucketsForTimeRange
         $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
 
     }
-
 
     # update egress flow counters
     foreach my $flow (@$egress_flows)
