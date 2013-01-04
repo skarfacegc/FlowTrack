@@ -14,7 +14,6 @@ use FT::Configuration;
 use FT::FlowTrack;
 use FT::IP;
 
-
 #
 # Tune scoring
 #
@@ -45,7 +44,7 @@ sub runReports
     my $self   = shift;
     my $logger = get_logger();
 
-    $self->getRecentTalkers();
+    $self->getFlowsByTalkerPair();
 
     return;
 }
@@ -54,51 +53,56 @@ sub runReports
 # This routine gets all of the talker pairs that we've seen in the last reporting_interval
 # and returns the list of flows keyed by buildTrackerKey
 #
-sub getRecentTalkers
+sub getFlowsByTalkerPair
 {
-    my $self = shift();
-    my $logger = get_logger();
-    my $config = FT::Configuration::getConf();
+    my $self               = shift();
+    my $logger             = get_logger();
+    my $config             = FT::Configuration::getConf();
     my $reporting_interval = $config->{reporting_interval};
     my $ret_struct;
 
-    my $flows = $self->getFlowsForLast($config->{reporting_interval});
+    my $flows = $self->getFlowsForLast( $config->{reporting_interval} );
 
     foreach my $flow (@$flows)
     {
-        my $key = $self->buildTrackerKey($flow->{src_ip}, $flow->{dst_ip});
+        my $key = $self->buildTalkerKey( $flow->{src_ip}, $flow->{dst_ip} );
 
-        push(@{$ret_struct->{$key}}, $flow);
+        push( @{ $ret_struct->{$key} }, $flow );
     }
 
-    return $ret_struct;    
+    return $ret_struct;
 }
 
-
-
-# Takes two net::ip objects, returns a string in the form internal-external
 #
-sub buildTrackerKey
+# Takes two IP addresses (integers) and returns the string
+# internal-external
+#
+# if both are internal returns
+# lowest_internal-higest_internal
+sub buildTalkerKey
 {
-    my $self = shift;
+    my $self   = shift;
+    my $logger = get_logger();
     my ( $ip_a, $ip_b ) = @_;
 
-    my $logger = get_logger;
-    my $ip_a_obj = FT::IP::getIPObj($ip_a);
-    my $ip_b_obj = FT::IP::getIPObj($ip_b);
-
-    my $internal_network = Net::IP->new( $self->{internal_network} );
-
-    if ( $internal_network->overlaps($ip_a_obj) == $IP_B_IN_A_OVERLAP )
+    # IP A is internal IP B isn't
+    if ( $self->isInternal($ip_a) && !$self->isInternal($ip_b) )
     {
-        return $ip_a_obj->intip() . "-" . $ip_b_obj->intip();
+        return $ip_a . "-" . $ip_b;
     }
-    else
+
+    # IP B is internal IP A isn't
+    elsif ( $self->isInternal($ip_b) && !$self->isInternal($ip_a) )
     {
-        return $ip_b_obj->intip() . "-" . $ip_b_obj->intip();
+        return $ip_b . "-" . $ip_b;
+    }
+
+    # Both A & B are internal, return with lowest ip first
+    elsif ( $self->isInternal($ip_a) && $self->isInternal($ip_b) )
+    {
+        return $ip_a < $ip_b ? $ip_a . "-" . $ip_b : $ip_b . "-" . $ip_a;
     }
 
 }
-
 
 1;
