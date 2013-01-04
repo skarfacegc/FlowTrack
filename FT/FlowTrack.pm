@@ -500,6 +500,15 @@ sub purgeData
     return $rows_deleted;
 }
 
+# returns true if the provided IP is in the internal network
+sub isInternal
+{
+    my $self = shift();
+    my $ip   = shift();
+
+    return FT::IP::IPOverlap($self->{internal_network}, $ip);
+
+}   
 
 #
 # "Private" methods below.  Not stopping folks from calling these, but they're really not interesting

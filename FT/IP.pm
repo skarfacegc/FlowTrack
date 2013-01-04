@@ -9,6 +9,7 @@ use Net::IP;
 use Memoize;
 
 memoize('getIPObj');
+memoize('IPOverlap');
 
 # Returns an IP object for the provided IP
 # tries to determine if it's a intip or a dotted quad
@@ -28,6 +29,15 @@ sub getIPObj
         return Net::IP->new($ip);
     }
 }
+
+sub IPOverlap
+{
+    my ( $network, $ip ) = @_;
+
+    my $network_obj = getIPObj($network);
+    my $ip_obj      = getIPObj($ip);
+
+    return $network_obj->overlaps($ip_obj) == $IP_B_IN_A_OVERLAP;
 }
 
 1;
