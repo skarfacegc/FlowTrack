@@ -4,18 +4,20 @@ use feature ':5.10';
 use Carp;
 use strict;
 use warnings;
-use Log::Log4perl qw(get_logger);
 
+use Log::Log4perl qw(get_logger);
 use DBI;
 use Data::Dumper;
-use FT::Configuration;
-use FT::Schema;
 use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
 use DateTime;
 use DateTime::TimeZone;
 use vars '$AUTOLOAD';
+
+use FT::Configuration;
+use FT::Schema;
+use FT::IP;
 
 #
 # Constructor

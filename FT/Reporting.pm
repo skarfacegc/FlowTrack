@@ -4,18 +4,16 @@
 package FT::Reporting;
 use strict;
 use warnings;
+use parent qw{FT::FlowTrack};
 use Carp;
+use Data::Dumper;
 use Log::Log4perl qw{get_logger};
+use Net::IP;
+
 use FT::Configuration;
 use FT::FlowTrack;
 use FT::IP;
-use Net::IP;
-use parent qw{FT::FlowTrack};
-use Data::Dumper;
 
-# Cache some expensive lookups
-use Memoize;
-memoize('buildTrackerKey');
 
 #
 # Tune scoring
