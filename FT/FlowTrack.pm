@@ -138,6 +138,20 @@ sub getFlowsForLast
 #
 # Gets flows in the specified time range
 #
+# returns a list of:
+# {
+#   'protocol' => 6,
+#   'bytes' => 208,
+#   'src_port' => 62140,
+#   'flow_id' => 1171324,
+#   'packets' => 4,
+#   'dst_port' => 443,
+#   'src_ip' => 3232235786,
+#   'dst_ip' => 1249764389,
+#   'fl_time' => '1357418340.41598'
+# };'
+# 
+#
 sub getFlowsInTimeRange
 {
     my $self = shift;
