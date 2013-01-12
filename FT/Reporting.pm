@@ -60,6 +60,28 @@ sub runReports
 # external address for the talker pair
 # list of flows for the talker pair
 #
+#
+# Single record looks like:
+# '3232235877-520965706' => {
+#     'flows' => [
+#                  {
+#                    'protocol' => 6,
+#                    'bytes' => 5915,
+#                    'src_port' => 58950,
+#                    'flow_id' => 2938843,
+#                    'packets' => 77,
+#                    'dst_port' => 80,
+#                    'src_ip' => 3232235877,
+#                    'dst_ip' => 520965706,
+#                    'fl_time' => '1358003193.06847'
+#                  }
+#                ],
+#     'total_packets' => 77,
+#     'total_bytes' => 5915,
+#     'external' => 520965706,
+#     'internal' => 3232235877
+#   },
+#
 sub getFlowsByTalkerPair
 {
     my $self               = shift();
