@@ -53,6 +53,13 @@ sub runReports
 # This routine gets all of the talker pairs that we've seen in the last reporting_interval
 # and returns the list of flows keyed by buildTrackerKey
 #
+# Each record contains:
+# total bytes for the talker pair
+# total packets for the talker pair
+# internal address for the talker pair
+# external address for the talker pair
+# list of flows for the talker pair
+#
 sub getFlowsByTalkerPair
 {
     my $self               = shift();
@@ -67,8 +74,47 @@ sub getFlowsByTalkerPair
     {
         my $key = $self->buildTalkerKey( $flow->{src_ip}, $flow->{dst_ip} );
 
-        push( @{ $ret_struct->{$key} }, $flow );
+        # If the src ip is internal assume that the dst is external, this
+        # might not actually be the case for internal flows
+        if ( $self->isInternal( $flow->{src_ip} ) )
+        {
+            $ret_struct->{$key}{internal} = $flow->{src_ip};
+            $ret_struct->{$key}{external} = $flow->{dst_ip};
+        }
+        elsif ( $self->isInternal( $flow->{dst_ip} ) )
+        {
+            $ret_struct->{$key}{internal} = $flow->{dst_ip};
+            $ret_struct->{$key}{external} = $flow->{src_ip};
+        }
+        else
+        {
+            $logger->debug("ODD: Both src and dst were external");
+            next;
+        }
+
+        # Update Total Bytes (init if not defined)
+        if ( !defined( $ret_struct->{$key}{total_bytes} ) )
+        {
+            $ret_struct->{$key}{total_bytes} = $flow->{bytes};
+        }
+        else
+        {
+            $ret_struct->{$key}{total_bytes} += $flow->{bytes};
+        }
+
+        # Update total packets (init if not defined)
+        if ( !defined( $ret_struct->{$key}{total_packets} ) )
+        {
+            $ret_struct->{$key}{total_packets} = $flow->{packets};
+        }
+        else
+        {
+            $ret_struct->{$key}{total_packets} += $flow->{packets};
+        }
+
+        push( @{ $ret_struct->{$key}{flows} }, $flow );
     }
+
 
     return $ret_struct;
 }
