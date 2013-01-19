@@ -1,4 +1,4 @@
-Sample Graph View
+Sample Graph View (in the feature/graphing branch currently)
 
 ![Graph](http://flowtrack.info/images/graph_sample_small.png)
 
