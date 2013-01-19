@@ -1,4 +1,11 @@
+Sample Graph View
+
+![Graph](http://flowtrack.info/images/graph_sample_small.png)
+
+Sample view of raw flows
+
 ![TableView](http://pictures.baltdad.com/ExternalPictures/FlowTracktableView.png)
+
 
 About
 -----
