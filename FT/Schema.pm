@@ -95,6 +95,9 @@ $TABLES->{recent_talkers} = [
        name => 'internal_ip',
        type => 'INT',
     },
+    
+    # This might not actually be the external ip, it may be another
+    # internal IP for internal flows
     {
        name => 'external_ip',
        type => 'INT',

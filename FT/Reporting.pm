@@ -26,7 +26,7 @@ our $SCORE_DECREMENT = 1;
 
 # This is used to add a bit more weight to pairs with a bunch of flows
 # SCORE += int(total_flows/$SCORE_FLOWS)
-our $SCORE_FLOWS = 1000;
+our $SCORE_FLOWS = 10;
 
 #
 # All new really does here is create an FT object, and initialize the configuration
@@ -45,6 +45,7 @@ sub runReports
     my $logger = get_logger();
 
     $self->getFlowsByTalkerPair();
+    $self->updateRecentTalkers();
 
     return;
 }
@@ -78,8 +79,8 @@ sub runReports
 #                ],
 #     'total_packets' => 77,
 #     'total_bytes' => 5915,
-#     'external' => 520965706,
-#     'internal' => 3232235877
+#     'external_ip' => 520965706,
+#     'internal_ip' => 3232235877
 #   },
 #
 sub getFlowsByTalkerPair
@@ -100,13 +101,13 @@ sub getFlowsByTalkerPair
         # might not actually be the case for internal flows
         if ( $self->isInternal( $flow->{src_ip} ) )
         {
-            $ret_struct->{$key}{internal} = $flow->{src_ip};
-            $ret_struct->{$key}{external} = $flow->{dst_ip};
+            $ret_struct->{$key}{internal_ip} = $flow->{src_ip};
+            $ret_struct->{$key}{external_ip} = $flow->{dst_ip};
         }
         elsif ( $self->isInternal( $flow->{dst_ip} ) )
         {
-            $ret_struct->{$key}{internal} = $flow->{dst_ip};
-            $ret_struct->{$key}{external} = $flow->{src_ip};
+            $ret_struct->{$key}{internal_ip} = $flow->{dst_ip};
+            $ret_struct->{$key}{external_ip} = $flow->{src_ip};
         }
         else
         {
@@ -136,7 +137,6 @@ sub getFlowsByTalkerPair
 
         push( @{ $ret_struct->{$key}{flows} }, $flow );
     }
-
 
     return $ret_struct;
 }
@@ -170,6 +170,102 @@ sub buildTalkerKey
     {
         return $ip_a < $ip_b ? $ip_a . "-" . $ip_b : $ip_b . "-" . $ip_a;
     }
+
+}
+
+#
+# Updates the scoring in the recent talkers database
+#
+#
+sub updateRecentTalkers
+{
+    my $self   = shift();
+    my $logger = get_logger();
+
+    my $recent_flows    = $self->getFlowsByTalkerPair();
+    my $tracked_talkers = $self->getTrackedTalkers();
+    my $scored_flows;
+    my $update_sql;
+
+    $update_sql = qq{
+        INSERT OR REPLACE INTO 
+            recent_talkers (internal_ip, external_ip, score, last_update)
+        VALUES
+            (?,?,?,?)
+    };
+
+    # load all of our existing talker pairs into the return struct
+    # decrement the score for each of them  (we'll add to it later)
+    foreach my $talker_pair ( keys %$tracked_talkers )
+    {
+        $scored_flows->{$talker_pair} = $tracked_talkers->{$talker_pair};
+        $scored_flows->{$talker_pair}{score} = $scored_flows->{$talker_pair}{score} - $SCORE_DECREMENT;
+    }
+
+    # Now go through all of our recent flows and update ret_struct;
+    foreach my $recent_pair ( keys %$recent_flows )
+    {
+        # setup the scored flow record
+        if ( !exists( $scored_flows->{$recent_pair} ) )
+        {
+            $scored_flows->{$recent_pair}{internal_ip} = $recent_flows->{$recent_pair}{internal_ip};
+            $scored_flows->{$recent_pair}{external_ip} = $recent_flows->{$recent_pair}{external_ip};
+            $scored_flows->{$recent_pair}{score}       = 0;
+        }
+
+        # Log our flow count for this pair
+
+        $scored_flows->{$recent_pair}{score} +=
+          $SCORE_INCREMENT + ( int( ( scalar @{ $recent_flows->{$recent_pair}{flows} } ) / $SCORE_FLOWS ) );
+
+    }
+
+    # Now do the DB updates
+    # TODO: Bulk insert the data
+    my $dbh = $self->_initDB();
+    my $sth = $dbh->prepare($update_sql)
+      or $logger->warning( "Couldn't prepare:\n\t $update_sql\n\t" . $dbh->errstr );
+
+    foreach my $scored_flow ( keys $scored_flows )
+    {
+        $sth->execute( $scored_flows->{$scored_flow}{internal_ip},
+                       $scored_flows->{$scored_flow}{external_ip},
+                       $scored_flows->{$scored_flow}{score}, time )
+          or $logger->warning( "Couldn't execute: " . $dbh->errstr );
+    }
+
+}
+
+#
+# Loads data from the recent_talkers database
+#
+sub getTrackedTalkers
+{
+    my $self       = shift();
+    my $logger     = get_logger();
+    my $dbh        = $self->_initDB();
+    my $ret_struct = {};
+
+    my $sql = qq{
+         SELECT * FROM recent_talkers
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->warning( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
+    $sth->execute() or $logger->warning( "Couldn't execute" . $dbh->errstr );
+
+    while ( my $talker_ref = $sth->fetchrow_hashref )
+    {
+        $ret_struct->{ $talker_ref->{internal_ip} . "-" . $talker_ref->{external_ip} } = $talker_ref;
+    }
+
+    return $ret_struct;
+}
+
+#
+# purge old data from recent_talkers
+#
+sub purgeRecentTalkers
+{
 
 }
 
