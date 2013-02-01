@@ -44,7 +44,6 @@ sub runReports
     my $self   = shift;
     my $logger = get_logger();
 
-    $self->getFlowsByTalkerPair();
     $self->updateRecentTalkers();
 
     return;
