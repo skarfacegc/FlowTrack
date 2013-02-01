@@ -276,7 +276,7 @@ sub purgeRecentTalkers
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
     $rows_deleted = $sth->execute();
 
-    $logger->info("purgeRecentTalkers purged: " . $rows_deleted);
+    $logger->info( "purgeRecentTalkers purged: " . $rows_deleted );
 }
 
 1;
