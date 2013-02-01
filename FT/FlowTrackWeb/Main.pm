@@ -18,6 +18,7 @@ our $INTERNAL_NETWORK = '192.168.1.0/24';
 our $DATA_DIR         = './Data';
 
 our $FT = FT::FlowTrack->new( $DATA_DIR, $INTERNAL_NETWORK );
+our $REPORTING = FT::Reporting->new( { data_dir => $DATA_DIR, internal_network => $INTERNAL_NETWORK } );
 
 sub indexPage
 {
@@ -96,8 +97,6 @@ sub aggergateBucketJSON
     my $flow_buckets = $FT->getSumBucketsForLast( 120, 180 );
     my $ret_struct;
 
-    
-
     # building a datastructure keyed by the field names so we can build a
     # per field list of x,y value pairs (x is always timestamp)
     # this will be turned into the final return list prior to rendering
@@ -138,12 +137,35 @@ sub aggergateBucketJSON
 
 }
 
-sub talkerGraphsJSON
+sub topTalkersJSON
 {
-    my $self = shift;
+    my $self   = shift;
     my $logger = get_logger();
 
-    
+    my $limit = $self->param('talker_count') // 20;
+
+    my $recent_talker_list = $REPORTING->getTopRecentTalkers($limit);
+    my $cooked_talker_list;
+
+    foreach my $recent_talker (@$recent_talker_list)
+    {
+        my $talker_struct;
+        my $internal_network_obj = FT::IP::getIPObj($recent_talker->{internal_ip});
+        my $external_network_obj = FT::IP::getIPObj($recent_talker->{external_ip});
+        my $update_time = strftime( "%r", localtime($recent_talker->{last_update}) );
+
+        $talker_struct->{internal_ip} = $internal_network_obj->ip();
+        $talker_struct->{external_ip} = $external_network_obj->ip();
+        $talker_struct->{update_time} = $update_time;
+        $talker_struct->{score} = $recent_talker->{score};
+
+        push @$cooked_talker_list, $talker_struct;
+
+    }
+
+    $self->render( { json => $cooked_talker_list } );
+
+    return;
 }
 
 1;
