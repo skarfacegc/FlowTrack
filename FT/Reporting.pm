@@ -45,7 +45,7 @@ sub runReports
     my $logger = get_logger();
 
     $self->updateRecentTalkers();
-
+    $self->purgeRecentTalkers();
     return;
 }
 
@@ -265,7 +265,18 @@ sub getRecentTalkers
 #
 sub purgeRecentTalkers
 {
+    my $self   = shift();
+    my $logger = get_logger();
+    my $dbh    = $self->_initDB();
+    my $rows_deleted;
+    my $sql = qq {
+        DELETE FROM recent_talkers WHERE score <= 0
+    };
 
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
+    $rows_deleted = $sth->execute();
+
+    $logger->info("purgeRecentTalkers purged: " . $rows_deleted);
 }
 
 1;
