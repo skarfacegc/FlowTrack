@@ -181,8 +181,8 @@ sub updateRecentTalkers
     my $self   = shift();
     my $logger = get_logger();
 
-    my $recent_flows    = $self->getFlowsByTalkerPair();
-    my $tracked_talkers = $self->getTrackedTalkers();
+    my $recent_flows   = $self->getFlowsByTalkerPair();
+    my $recent_talkers = $self->getRecentTalkers();
     my $scored_flows;
     my $update_sql;
 
@@ -195,9 +195,9 @@ sub updateRecentTalkers
 
     # load all of our existing talker pairs into the return struct
     # decrement the score for each of them  (we'll add to it later)
-    foreach my $talker_pair ( keys %$tracked_talkers )
+    foreach my $talker_pair ( keys %$recent_talkers )
     {
-        $scored_flows->{$talker_pair} = $tracked_talkers->{$talker_pair};
+        $scored_flows->{$talker_pair} = $recent_talkers->{$talker_pair};
         $scored_flows->{$talker_pair}{score} = $scored_flows->{$talker_pair}{score} - $SCORE_DECREMENT;
     }
 
@@ -238,7 +238,7 @@ sub updateRecentTalkers
 #
 # Loads data from the recent_talkers database
 #
-sub getTrackedTalkers
+sub getRecentTalkers
 {
     my $self       = shift();
     my $logger     = get_logger();
