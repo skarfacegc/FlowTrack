@@ -261,6 +261,35 @@ sub getRecentTalkers
 }
 
 #
+# This routine returns the list of the top x recent talkers
+# top x is defined as, top talkers sorted by time then score
+# so we see the most recent active top talkers
+#
+sub getTopRecentTalkers
+{
+    my $self = shift();
+    my ($limit) = @_;
+
+    my $logger = get_logger();
+    my $dbh    = $self->_initDB();
+    my $ret_list;
+
+    my $sql = qq{
+        SELECT * FROM recent_talkers ORDER BY last_update, score DESC LIMIT ?
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->warn( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
+    $sth->execute($limit);
+
+    while ( my $recent_talker = $sth->fetchrow_hashref )
+    {
+        push( @$ret_list, $recent_talker );
+    }
+
+    return $ret_list;
+}
+
+#
 # purge old data from recent_talkers
 #
 sub purgeRecentTalkers
