@@ -249,7 +249,7 @@ sub getTrackedTalkers
          SELECT * FROM recent_talkers
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->warning( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
+    my $sth = $dbh->prepare($sql) or $logger->warn( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
     $sth->execute() or $logger->warning( "Couldn't execute" . $dbh->errstr );
 
     while ( my $talker_ref = $sth->fetchrow_hashref )
