@@ -21,12 +21,12 @@ use FT::IP;
 # How much to increment the score when we see a talker pair
 our $SCORE_INCREMENT = 3;
 
-# How much to decrement the score when we don't see a talker pair
-our $SCORE_DECREMENT = 1;
+# The multiplier for the last update time (i.e. $SCORE_DECREMENT * (time - last_update))
+our $SCORE_DECREMENT = 2;
 
 # This is used to add a bit more weight to pairs with a bunch of flows
 # SCORE += int(total_flows/$SCORE_FLOWS)
-our $SCORE_FLOWS = 10;
+our $SCORE_BYTES = 1_000;
 
 #
 # All new really does here is create an FT object, and initialize the configuration
@@ -198,7 +198,9 @@ sub updateRecentTalkers
     foreach my $talker_pair ( keys %$recent_talkers )
     {
         $scored_flows->{$talker_pair} = $recent_talkers->{$talker_pair};
-        $scored_flows->{$talker_pair}{score} = $scored_flows->{$talker_pair}{score} - $SCORE_DECREMENT;
+        $scored_flows->{$talker_pair}{score} =
+          $scored_flows->{$talker_pair}{score} -
+          ( $SCORE_DECREMENT * ( time - $recent_talkers->{$talker_pair}{last_update} ) );
     }
 
     # Now go through all of our recent flows and update ret_struct;
@@ -213,9 +215,8 @@ sub updateRecentTalkers
         }
 
         # Log our flow count for this pair
-
         $scored_flows->{$recent_pair}{score} +=
-          $SCORE_INCREMENT + ( int( ( scalar @{ $recent_flows->{$recent_pair}{flows} } ) / $SCORE_FLOWS ) );
+          $SCORE_INCREMENT + int( $recent_flows->{$recent_pair}{total_bytes} / $SCORE_BYTES );
 
     }
 
