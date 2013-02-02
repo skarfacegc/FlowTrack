@@ -22,7 +22,7 @@ use FT::IP;
 our $SCORE_INCREMENT = 3;
 
 # The multiplier for the last update time (i.e. $SCORE_DECREMENT * (time - last_update))
-our $SCORE_DECREMENT = 2;
+our $SCORE_DECREMENT = .5;
 
 # This is used to add a bit more weight to pairs with a bunch of flows
 # SCORE += int(total_flows/$SCORE_FLOWS)
