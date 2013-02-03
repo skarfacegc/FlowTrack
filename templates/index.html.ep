@@ -10,7 +10,10 @@
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"> </script>
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"> </script>
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"> </script>
+
         <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet">
+        <link type="text/css" href="/css/col.css" rel="Stylesheet">
+        <link type="text/css" href="/css/3cols.css" rel="Stylesheet">
         <link type="text/css" href="/css/base.css" rel="Stylesheet">
 
         <script type="text/javascript">
@@ -44,37 +47,85 @@
                     }
                 };
 
-                function onDataReceived(series)
+                function onGraphDataReceived(series)
                 {
                     $.plot($("#topGraph"), [series.ingress_bytes, series.egress_bytes], options);
                 }
 
-                function getData()
+                function getGraphData()
                 {
                      $.ajax({
                         url:"/json/LastHourTotals/1",
                         method: 'GET',
                         dataType: 'json',
-                        success: onDataReceived
+                        success: onGraphDataReceived
                      });
 
                 }
-                getData();
-                setInterval(getData, 120000);
+                getGraphData();
+                // update the graph every two minutes
+                setInterval(getGraphData, 120000);
+
+                // Code to populate the talker grid
+
+                function getTalkerData()
+                {
+                    $.ajax({
+                      url: '/json/topTalkers/21',
+                      type: 'GET',
+                      dataType: 'json',
+                      success: onTalkerDataReceived
+                    });
+                    
+                }
+
+                function onTalkerDataReceived(talkers)
+                {
+                    var div_count = 0;
+                    var html_slug = ""
+                    $("#talker_grid").empty();
+                    
+                    $.each(talkers, function() {
+                    
+                        div_count++;
+
+                        if(div_count == 1)
+                        {
+                            html_slug = html_slug + "<div id='"+div_count+"' class='section group'>";
+                        }
+
+                        html_slug = html_slug + "<div class='content gridItem col span_1_of_3'><h3> "
+                                                 + this.internal_ip + " <-> " + this.external_ip + "</h3></div>";
+
+                        if(div_count == 3)
+                        {
+                            div_count = 0;
+                            html_slug = html_slug + "</div>";
+                        }
+
+
+                    });
+
+                    $("#talker_grid").append(html_slug);
+                }
+
+                getTalkerData();
+                setInterval(getTalkerData, 120000);
+
             });
-
-
-            
-
         </script>
     </head>
     <body>
-        <div class="wrapper">
-            <div id="topGraph"></div>
-            <div id="talkerGrid"></div>
-        </div>
-        <div>
+        
+        <div id="wrapper">
+            <div class="content section group">
+                <div id="topGraph" class="col span_3_of_3"></div>
+            </div>
 
+
+            <div id="talker_grid">
+              
+            </div>
         </div>
     </body>
 </html>

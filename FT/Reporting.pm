@@ -200,7 +200,7 @@ sub updateRecentTalkers
         $scored_flows->{$talker_pair} = $recent_talkers->{$talker_pair};
         $scored_flows->{$talker_pair}{score} =
           $scored_flows->{$talker_pair}{score} -
-          ( $SCORE_DECREMENT * ( time - $recent_talkers->{$talker_pair}{last_update} ) );
+          int( ( $SCORE_DECREMENT * ( time - $recent_talkers->{$talker_pair}{last_update} ) ) );
     }
 
     # Now go through all of our recent flows and update ret_struct;

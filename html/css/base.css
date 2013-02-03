@@ -7,14 +7,9 @@ body {
     font-family:Verdana;
 }
 
-.wrapper {
+.content {
     border-radius: 5px;
-    border:1px solid black;
     background-color: white;
-    margin:10px auto;
-    width:90%;
-    position: relative;
-    padding: 20px;
 }
 
 
@@ -24,6 +19,14 @@ body {
 }
 
 #talkerGrid {
+}
+
+.gridItem {
+    background-color: white;
+}
+
+.gridItem > h3 {
+    padding-left: 1em;
 }
 
 .tickLabel, .legendLabel {
