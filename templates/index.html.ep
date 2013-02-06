@@ -11,10 +11,13 @@
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"> </script>
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"> </script>
 
-        <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="Stylesheet">
-        <link type="text/css" href="/css/col.css" rel="Stylesheet">
-        <link type="text/css" href="/css/3cols.css" rel="Stylesheet">
-        <link type="text/css" href="/css/base.css" rel="Stylesheet">
+        <link type='text/css' href='http://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet'>
+        <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="stylesheet">
+        <link type="text/css" href="/css/col.css" rel="stylesheet">
+        <link type="text/css" href="/css/3cols.css" rel="stylesheet">
+
+        <link type="text/css" href="/css/base.css" rel="stylesheet">
+
 
         <script type="text/javascript">
             $(document).ready(function($) 
@@ -94,8 +97,11 @@
                             html_slug = html_slug + "<div id='"+div_count+"' class='section group'>";
                         }
 
-                        html_slug = html_slug + "<div class='content gridItem col span_1_of_3'><h3> "
-                                                 + this.internal_ip + " <-> " + this.external_ip + "</h3></div>";
+                        html_slug = html_slug + "<div class='content gridItem col span_1_of_3'>"+
+                                                  "<span class='internal_ip'>" + this.internal_ip + "</span>" + 
+                                                  "<span class='external_ip'>" + this.external_ip + "</span>" +
+                                                  "<div id='" + this.id +"' class='talkerGraph'></div>" +
+                                                "</div>";
 
                         if(div_count == 3)
                         {
