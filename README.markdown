@@ -1,3 +1,6 @@
+**Current work is happening on feature/graphing**
+
+
 Sample Graph View (in the feature/graphing branch currently)
 
 ![Graph](http://flowtrack.info/images/graph_sample_small.png)
@@ -137,16 +140,14 @@ Planned Roadmap
     - ~~Docs~~
     - ~~Cleanup dead files~~
 - **Release 0.0.2**
-    - move database code from FlowTrack.pm
-    - Error Checking config file
-    - Web Auth
-    - Deeper server interaction on datatables
-    - Sparkline page
-    - Long term RRD graphs
-    - Add index support to the schema definitions
-    - Update styling  (currently using a stock theme-roller)
+    - Active Talker Grid
+    - Active Talker Graphs
+    - Main Ingress/Egress Graph
 - **Future**
-    - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX source.  Gonna look at Yaf at some pt)
+    - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX 
+      source.  Gonna look at Yaf at some pt)
+    - HTTP Auth
+    - Refactor config loading (buggy as hell right now)
 
 
 
