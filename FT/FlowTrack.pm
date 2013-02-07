@@ -377,31 +377,17 @@ sub getSumBucketsForTimeRange
     # used to determine ingress/egress/and internal traffic
     my $internal_network = Net::IP->new( $self->{internal_network} );
 
-    #what's our first bucket?
-    $bucket_time = calcBucketTime( $start_time, $bucket_size );
+    # List of fields we want in the final hash
+    my $field_list = [
+                       'internal_flows',   'internal_bytes', 'total_packets',  'total_bytes',
+                       'total_flows',      'egress_bytes',   'egress_flows',   'ingress_flows',
+                       'internal_packets', 'ingress_bytes',  'egress_packets', 'ingress_packets'
+    ];
 
-    # Initalize the hash
-    while ( $bucket_time < $end_time )
-    {
-        $buckets_by_time->{$bucket_time} = {
-                                             'internal_flows'   => 0,
-                                             'internal_bytes'   => 0,
-                                             'total_packets'    => 0,
-                                             'total_bytes'      => 0,
-                                             'total_flows'      => 0,
-                                             'egress_bytes'     => 0,
-                                             'egress_flows'     => 0,
-                                             'ingress_flows'    => 0,
-                                             'internal_packets' => 0,
-                                             'ingress_bytes'    => 0,
-                                             'egress_packets'   => 0,
-                                             'bucket_time'      => $bucket_time,
-                                             'ingress_packets'  => 0,
-        };
-
-        # On to the next bucket
-        $bucket_time += $bucket_size;
-    }
+    # Initialize our bucket hash.  We need to do this so that we can accurately reflect buckets
+    # that don't have flows. Because the database won't tell us about buckets that don't have
+    # any flows.
+    $buckets_by_time = _buildTimeBucketHash( $bucket_size, $start_time, $end_time, $field_list );
 
     # Load the flows, skip the IP object creation
     #
@@ -415,7 +401,7 @@ sub getSumBucketsForTimeRange
     # Update internal flow counters
     foreach my $flow (@$internal_flows)
     {
-        my $bucket = calcBucketTime( $flow->{fl_time}, $bucket_size );
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
 
         $buckets_by_time->{$bucket}{internal_flows}++;
         $buckets_by_time->{$bucket}{internal_bytes}   += $flow->{bytes};
@@ -431,7 +417,7 @@ sub getSumBucketsForTimeRange
     # update ingress flow counters
     foreach my $flow (@$ingress_flows)
     {
-        my $bucket = calcBucketTime( $flow->{fl_time}, $bucket_size );
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
 
         $buckets_by_time->{$bucket}{ingress_flows}++;
         $buckets_by_time->{$bucket}{ingress_bytes}   += $flow->{bytes};
@@ -447,7 +433,7 @@ sub getSumBucketsForTimeRange
     # update egress flow counters
     foreach my $flow (@$egress_flows)
     {
-        my $bucket = calcBucketTime( $flow->{fl_time}, $bucket_size );
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
 
         $buckets_by_time->{$bucket}{egress_flows}++;
         $buckets_by_time->{$bucket}{egress_bytes}   += $flow->{bytes};
@@ -467,17 +453,6 @@ sub getSumBucketsForTimeRange
     }
 
     return $ret_list;
-}
-
-#
-# Takes: time, bucket size
-# Returns: time rounded down to the closest bucket aligned time.
-#
-sub calcBucketTime
-{
-    my ( $time, $bucket_size ) = @_;
-
-    return int( $time - ( int($time) % $bucket_size ) );
 }
 
 #
@@ -519,9 +494,9 @@ sub isInternal
     my $self = shift();
     my $ip   = shift();
 
-    return FT::IP::IPOverlap($self->{internal_network}, $ip);
+    return FT::IP::IPOverlap( $self->{internal_network}, $ip );
 
-}   
+}
 
 #
 # "Private" methods below.  Not stopping folks from calling these, but they're really not interesting
@@ -645,6 +620,51 @@ sub _checkDirs
       unless ( -d $self->{location} );
 
     return;
+}
+
+#
+# Builds a hash of the appropriate number of
+# time buckets between start_time and end_time in time_bucket
+# intervals.
+#
+# Hash has fields for total bytes/flows/packets for internal, egress, ingress flows
+sub _buildTimeBucketHash
+{
+    my ( $bucket_size, $start_time, $end_time, $field_list ) = @_;
+
+    my $buckets_by_time;
+
+    #what's our first bucket?
+    my $bucket_time = _calcBucketTime( $start_time, $bucket_size );
+
+    # Initalize the hash
+    while ( $bucket_time < $end_time )
+    {
+        $buckets_by_time->{$bucket_time} = { 'bucket_time' => $bucket_time, };
+
+        # Now add and initialize the fields in $field_list
+        foreach my $field (@$field_list)
+        {
+            $buckets_by_time->{$bucket_time}{$field} = 0;
+        }
+
+        # On to the next bucket
+        $bucket_time += $bucket_size;
+    }
+
+    return $buckets_by_time;
+
+}
+
+#
+# Takes: time, bucket size
+# Returns: time rounded down to the closest bucket aligned time.
+#
+sub _calcBucketTime
+{
+    my ( $time, $bucket_size ) = @_;
+
+    return int( $time - ( int($time) % $bucket_size ) );
 }
 
 #
