@@ -6,7 +6,9 @@ package FT::IP;
 use warnings;
 use strict;
 use Net::IP;
+use Net::DNS;
 use Memoize;
+use Data::Dumper;
 
 memoize('getIPObj');
 memoize('IPOverlap');
@@ -39,5 +41,38 @@ sub IPOverlap
 
     return $network_obj->overlaps($ip_obj) == $IP_B_IN_A_OVERLAP;
 }
+
+
+#
+# Turn an IP into a name, turn a name into an IP.
+# 
+# Returns whatever is in the first PTR or A record.  
+# If no PTR or A is found returns ""
+#
+sub Resolve
+{
+    my $to_resolve = shift();
+
+    my $res = Net::DNS::Resolver->new();
+    my $packet = $res->search($to_resolve);
+    my @rr = $packet->answer;
+
+    
+
+    # Naively return whatever the first record tells us.
+    if($rr[0]->type eq 'PTR')
+    {
+        return $rr[0]->ptrdname;
+    }
+    elsif($rr[0]->type eq 'A')
+    {
+        return $rr[0]->address;
+    }
+    else
+    {
+        return "";
+    }
+}
+
 
 1;
