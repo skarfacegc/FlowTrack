@@ -1,30 +1,47 @@
+#!/usr/bin/env perl
+
 use strict;
 use warnings;
 use Log::Log4perl qw(get_logger);
 use autodie;
+use File::Temp;
 
-use Test::More tests => 16;
+use Test::More;
 use Data::Dumper;
 use FT::Schema;
+use Log::Log4perl;
 
-use vars qw($DB_TEST_FILE);
+use vars qw($TEST_COUNT );
 
-# Assumes you have flow tools in /opt/local/bin or /usr/bin
-
-my $DB_TEST_FILE = "FT_TEST.sqlite";
+# Holds test count
+my $TEST_COUNT;
 
 BEGIN
 {
     use_ok('FT::FlowTrack');
+    $TEST_COUNT += 1;
 }
 
 test_main();
 
 sub test_main
 {
-    unlink("/tmp/$DB_TEST_FILE") if ( -e "/tmp/$DB_TEST_FILE" );
-    object_tests();
-    db_creation();
+    # This is here mainly to squash warnings
+    my $empty_log_config = qq{log4perl.rootLogger=FATAL, Screen
+                              log4perl.appender.Screen = Log::Log4perl::Appender::Screen
+                              log4perl.appender.Screen.layout = Log::Log4perl::Layout::SimpleLayout};
+
+    Log::Log4perl::init( \$empty_log_config );
+
+    # Run the tests!
+    customObjects();
+    defaultObjectTests();
+    dbCreation();
+    dbRawQueryTests();
+    dbByteBucketQueryTests();
+    done_testing($TEST_COUNT);
+
+    return;
 }
 
 #
@@ -33,29 +50,34 @@ sub test_main
 #
 # Make sure the schema definition stuff passes through cleanly
 #
-sub object_tests
+sub customObjects
 {
     #
     # object Creation, using defaults
     #
 
     # Custom Values
-    my $ft_custom = FT::FlowTrack->new( "./blah", 1, "flowtrack.sqlite" );
-    ok( $ft_custom->{location} eq "./blah", "custom location" );
-    ok( $ft_custom->{debug} == 1, "custom debug setting" );
-    ok( $ft_custom->{dbname} eq "flowtrack.sqlite", "custom DB name" );
-    unlink("./blah/flowtrack.sqlite");
+    my $ft_custom = FT::FlowTrack->new( "./blah", "192.168.1.1/24" );
+    ok( $ft_custom->{location}         eq "./blah",         "custom location" );
+    ok( $ft_custom->{internal_network} eq "192.168.1.1/24", "custom network" );
+    unlink("./blah/FlowTrack.sqlite");
     rmdir("./blah");
 
+    $TEST_COUNT += 2;
+
+    return;
+}
+
+sub defaultObjectTests
+{
     # Default Values
     my $ft_default = FT::FlowTrack->new();
-    ok( $ft_default->{location} eq "Data", "default location" );
-    ok( $ft_default->{debug} == 0, "default debug setting" );
-    ok( $ft_default->{dbname} eq "FlowTrack.sqlite", "default DB name" );
+    ok( $ft_default->{location}         eq "Data",           "default location" );
+    ok( $ft_default->{internal_network} eq "192.168.1.0/24", "default network" );
 
     # make sure we get back a well known table name
     my $tables = $ft_default->get_tables();
-    ok( grep( /raw_flow/, @$tables ), "Schema List" );
+    ok( grep( {/raw_flow/} @$tables ), "Schema List" );
 
     # Do a basic schema structure test
     my $table_def = $ft_default->get_table("raw_flow");
@@ -63,24 +85,29 @@ sub object_tests
 
     my $create_sql = $ft_default->get_create_sql("raw_flow");
     ok( $create_sql ~~ /CREATE.*fl_time.*/, "Create statement generation" );
+
+    $TEST_COUNT += 5;
+
+    return;
 }
 
 #
 # Check Database Creation routines
 #
-sub db_creation
+sub dbCreation
 {
-
     #
     # DB Creation
     #
     # We'll use $dbh and $db_creat for several areas of testing
     #
+    my $db_location = getTmp();
 
-    my $db_creat = FT::FlowTrack->new( "/tmp", 1, $DB_TEST_FILE );
+
+    my $db_creat = FT::FlowTrack->new($db_location);
 
     my $dbh = $db_creat->_initDB();
-    ok( -e "/tmp/$DB_TEST_FILE", "database file exists" );
+    ok( -e "$db_location/FlowTrack.sqlite", "database file exists" );
     is_deeply( $dbh, $db_creat->{dbh}, "object db handle compare" );
     is_deeply( $db_creat->{dbh}, $db_creat->{db_connection_pool}{$$}, "connection pool object storage" );
 
@@ -95,7 +122,215 @@ sub db_creation
     # Check to make sure tables were created
     #
     my @table_list = $dbh->tables();
-    ok( grep( /raw_flow/, @table_list ), "raw_flow created" );
+    ok( grep( {/raw_flow/} @table_list ), "raw_flow created" );
+
+    # Make sure we get back the number of buckets we were expecting  (should be 1000)
+
+    $TEST_COUNT += 6;
+
+    return;
+}
+
+#
+# uses dummy data provided by the build* routines below.
+# the build* routines are not black boxes.  I'm making assumptions
+# about size/count etc.
+sub dbRawQueryTests
+{
+    my $db_location = getTmp();
+    my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
+
+    # Verify creation and retrieval
+    # using canned data generated in buildRawFlows
+    ok( !$db_creat->storeFlow(),                                   "Store no flows" );
+    ok( $db_creat->storeFlow( buildRawFlows() ),                   "Store Flow" );
+    ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 105,       "Flows for last" );
+    ok( scalar( @{ $db_creat->getIngressFlowsForLast(5) } ) == 53, "IngressFlowsFlorLast" );
+    ok( scalar( @{ $db_creat->getEgressFlowsForLast(5) } ) == 52,  "EgressFlowsFlorLast" );
+
+    # We'll need the total count later (for the prune testing)
+    # so capture the count
+    my $pre_prune_count = scalar( @{ $db_creat->getFlowsInTimeRange( 0, time ) } );
+    ok( $pre_prune_count == 106, "Get full db" );
+
+    # Verify Fields are correct from the DB
+    my $sample = $db_creat->getFlowsInTimeRange( 0, time );
+    ok(
+        $sample->[0]{src_ip}        eq "167837698"
+          && $sample->[0]{dst_ip}   eq "167772169"
+          && $sample->[0]{src_port} eq "1024"
+          && $sample->[0]{dst_port} eq "80"
+          && $sample->[0]{bytes}    eq "8192"
+          && $sample->[0]{packets}  eq "255"
+          && $sample->[0]{protocol} eq "7",
+        ,
+        "compare single record and default time sort"
+    );
+
+    # now test purging
+    ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
+
+    $TEST_COUNT += 8;
+
+}
+
+#
+# Do the byte bucket tests
+sub dbByteBucketQueryTests
+{
+    # Need a new DB Dir (so we don't fight with data from the last test)
+    my $db_location = getTmp();
+
+    my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
+    $db_creat->storeFlow( buildFlowsForBucketTest(300) );
+
+    my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, 0, time );
+
+
+    # Now test some bucketing
+    ok( scalar @{$tmp_flows} == 1000, "Buckets in time range" );
+
+    # Make sure the sums work
+    ok( $tmp_flows->[0]{ingress_bytes} == 12288 &&
+        $tmp_flows->[0]{egress_bytes} == 24576 &&
+        $tmp_flows->[0]{total_bytes} == 36864,  "Byte Sum" );
+    
+    ok( $tmp_flows->[0]{ingress_packets} == 768 &&
+        $tmp_flows->[0]{egress_packets} == 1536 &&
+        $tmp_flows->[0]{total_packets} == 2304,  "Packet Sum" );
+
+    # Make sure that the relative call returns something. getting the time alignment correct
+    # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
+    # calls getSumBuckgetsForTimeRange underneath so I've already verified that the base call is
+    # working correctly above.
+    ok( scalar @{ $db_creat->getSumBucketsForLast( 300, 15 ) } > 0, "Buckets for last" );
+
+    $TEST_COUNT += 4;
+}
+
+#
+# Build some sample flows
+# These are for the raw selects (i.e. not trying to bucketize the results.)
+#
+sub buildRawFlows
+{
+
+    my $flow_list;
+    my $sample_flow;
+
+    my $time = time - 1;
+
+    # First we add a flow at the beginning of time (to test our date math)
+    my $ancient_flow = {
+                         fl_time  => 0,            # The dark ages
+                         src_ip   => 167837698,    # 10.1.0.2
+                         dst_ip   => 167772169,    # 10.0.0.9
+                         src_port => 1024,
+                         dst_port => 80,
+                         bytes    => 8192,
+                         packets  => 255,
+                         protocol => 7
+    };
+
+    push( @$flow_list, $ancient_flow );
+
+    # 105 is just enough to trip the batching code
+    for ( my $i = 0 ; $i < 105 ; $i++ )
+    {
+        my $sample_to_use;
+        my $sample_flow_egress = {
+            fl_time => $time + ( $i * .001 ),    # Just want a small time step
+            src_ip   => 167772161,               # 10.0.0.1
+            dst_ip   => 167837697,               # 10.1.0.1
+            src_port => 1024,
+            dst_port => 80,
+            bytes    => 8192,
+            packets  => 255,
+            protocol => 6
+        };
+        my $sample_flow_ingress = {
+            fl_time => $time + ( $i * .001 ),    # Just want a small time step
+            src_ip   => 167837697,               # 10.1.0.1
+            dst_ip   => 167772161,               # 10.0.0.1
+            src_port => 1024,
+            dst_port => 80,
+            bytes    => 8192,
+            packets  => 255,
+            protocol => 7
+        };
+
+        if ( $i % 2 == 0 )
+        {
+            $sample_flow = $sample_flow_ingress;
+        }
+        else
+        {
+            $sample_flow = $sample_flow_egress;
+        }
+
+        push( @$flow_list, $sample_flow );
+    }
+
+    return $flow_list;
+}
+
+#
+# Generate some nice even buckets
+#
+sub buildFlowsForBucketTest
+{
+    my ($bucket_size) = @_;
+
+    my $flow_list;
+    my $flows_in_each_bucket = 3;       # number of both egress and ingress flows to put in each bucket
+    my $total_flows          = 1000;    # Total number of both egress and ingress flows to return
+    my $current_bucket       = 0;       # holds the current bucket
+    my $i;
+    for ( $i = 0 ; $i < $total_flows ; $i++ )
+    {
+        for ( my $j = 0 ; $j < $flows_in_each_bucket ; $j++ )
+        {
+            my $sample_flow_egress = {
+                fl_time => time - ( $j + $current_bucket ),
+                src_ip   => 167772161,    # 10.0.0.1
+                dst_ip   => 167837697,    # 10.1.0.1
+                src_port => 1024,
+                dst_port => 80,
+                bytes    => 8192,
+                packets  => 512,
+                protocol => 6
+            };
+            my $sample_flow_ingress = {
+                fl_time => time - ( $j + $current_bucket ),
+                src_ip   => 167837697,    # 10.1.0.1
+                dst_ip   => 167772161,    # 10.0.0.1
+                src_port => 1024,
+                dst_port => 80,
+                bytes    => 4096,
+                packets  => 256,
+                protocol => 7
+            };
+
+            push( @$flow_list, $sample_flow_egress );
+            push( @$flow_list, $sample_flow_ingress );
+        }
+
+        $current_bucket += $bucket_size;
+    }
+
+    return $flow_list;
+}
+
+#
+# Get a tmpdir
+#
+sub getTmp
+{
+    #
+    # Get some tmp space
+    #
+    my $tmpspace = File::Temp->new();
+    return File::Temp->newdir( 'TEST_FT_XXXXXX', CLEANUP => 1 );
 }
 
 END

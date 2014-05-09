@@ -40,6 +40,8 @@ Installation & Use
     - DBD::SQLite
     - Net::Flow
     - Net::IP
+    - DateTime
+    - DateTime::Timezone (likely installed by the above)
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
 
@@ -124,6 +126,8 @@ Libraries Used
 - [JQuery](http://jquery.com/) - JS Framework
 - [DataTables](http://datatables.net/) - Table Viewer
 - [SQLite](http://www.sqlite.org/) - SQLite for the database
+- [FlotCharts](http://www.flotcharts.org/) - jQuery graphing package
+- [ResponsiveGrid](http://www.responsivegridsystem.com/) - Responsive Grid
 
 Planned Roadmap
 ----------------

@@ -15,22 +15,19 @@ sub setConf
 
     if ( !defined $oneTrueSelf )
     {
-        my $config_file = shift();
+        my $config_file = shift;
         my $config_struct;
         my $ret_struct;
-        my $logger;
-
-        $logger = get_logger();
+        my $logger = get_logger();
 
         $config_file = defined($config_file) ? $config_file : "./flowTrack.conf";
 
         if ( !-r $config_file )
         {
-            $logger->fatal("Couldn't read " . $config_file);
-            die "Couldn't read " . $config_file;
+            $logger->logconfess( "Couldn't read " . $config_file );
         }
 
-        $config_struct = YAML::LoadFile($config_file) or croak "Error parsing " . $config_file;
+        $config_struct = YAML::LoadFile($config_file) or $logger->logconfess("Error parsing " . $config_file);
 
         $oneTrueSelf = $config_struct;
         $oneTrueSelf->{ConfigFile} = $config_file;
@@ -41,9 +38,17 @@ sub setConf
 
 sub getConf
 {
+    my $logger = get_logger();
+
+    # Try to set a configuration if we don't already have one.
     if ( !defined($oneTrueSelf) )
     {
-        croak "Config not loaded.";
+        setConf();
+
+        if ( !defined($oneTrueSelf) )
+        {
+            $logger->logconfess("Config not loaded.");
+        }
     }
 
     return $oneTrueSelf;

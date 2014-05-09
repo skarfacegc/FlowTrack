@@ -30,13 +30,15 @@ use Data::Dumper;
 use FT::Configuration;
 use FT::FlowCollector;
 use FT::FlowTrackWeb;
+use FT::Reporting;
+
 use POSIX ":sys_wait_h";
 use Mojo::Server;
 use Mojo::Server::Daemon;
 
-
 # get things started.  Init configs/loops etc. Starts all the processes.
 main();
+
 sub main
 {
     my $command_hash;
@@ -70,16 +72,15 @@ sub main
     my $config = FT::Configuration::getConf();
     if ( exists $config->{logging_conf} && -r $config->{logging_conf} )
     {
-        Log::Log4perl->init( $config->{logging_conf} );
+        Log::Log4perl->init_and_watch( $config->{logging_conf} );
         $logger = get_logger();
         $logger->debug("Loaded l4p configuration");
     }
 
-
-    # 
+    #
     # Start launching processes
     #
-   
+
     # Daemonize ourself
     if (fork)
     {
@@ -175,7 +176,6 @@ sub main
     exit;
 }
 
-
 # This is the bit that actually does the flow collection
 # is just a net::server listener
 sub startCollector
@@ -207,19 +207,22 @@ sub startWebserver
 sub runReports
 {
     my $logger = get_logger();
+    my $config = FT::Configuration::getConf();
+    my $reports = FT::Reporting->new($config);
+
     while (1)
     {
         # sleep to the next 5 minute boundary
-        sleep 300 - ( time % 300 );
+        sleep( ( $config->{reporting_interval} * 60 ) - ( time % ( $config->{reporting_interval} * 60 ) ) );
 
-        $logger->debug('Running report');
+        $logger->info('Running report');
+        $reports->runReports();
 
-        sleep 300;
+        sleep( $config->{reporting_interval} * 60 );
     }
 
     return;
 }
-
 
 # Writes out pid files
 sub savePIDFile
@@ -231,19 +234,18 @@ sub savePIDFile
     if ( -w $config->{pid_files} )
     {
         open( my $fh, ">", $config->{pid_files} . "/$process.pid" )
-          || croak "Couldn't open " . $config->{pid_files} . "/$process.pid: $!";
+          || $logger->logconfess("Couldn't open " . $config->{pid_files} . "/$process.pid: $!");
         print $fh "$pid\n";
         close($fh);
 
     }
     else
     {
-        croak $config->{pid_files} . " is either missing or not writable";
+        $logger->logconfess($config->{pid_files} . " is either missing or not writable");
     }
 
     return;
 }
-
 
 # Removes the pid files
 sub removePIDFile

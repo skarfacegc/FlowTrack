@@ -57,7 +57,7 @@ sub CollectorStart
 #
 sub configure_hook
 {
-    my $self = shift();
+    my $self = shift;
     $self->{server}{udp_recv_len} = $DATAGRAM_LEN;
 }
 
@@ -66,7 +66,7 @@ sub configure_hook
 #
 sub child_finish_hook
 {
-    my $self      = shift();
+    my $self      = shift;
     my $flow_data = $self->{data}{flow_data};
     my $logger = get_logger();
 
@@ -74,7 +74,7 @@ sub child_finish_hook
     if(!defined $FT)
     {
         my $config = FT::Configuration::getConf();
-        $FT = FT::FlowTrack->new( $config->{data_dir}, 1, $config->{dbname}, $config->{internal_network} );
+        $FT = FT::FlowTrack->new( $config->{data_dir}, $config->{internal_network} );
     }
     
     $logger->debug("Collector Cleanup");
@@ -92,7 +92,7 @@ sub child_finish_hook
 #
 sub process_request
 {
-    my $self = shift();
+    my $self = shift;
     my $logger = get_logger();
 
     my $flow_data = FT::PacketHandler::decode_packet( $self->{server}{udp_data} );

@@ -4,16 +4,20 @@ use feature ':5.10';
 use Carp;
 use strict;
 use warnings;
-use Log::Log4perl qw(get_logger);
 
+use Log::Log4perl qw(get_logger);
 use DBI;
 use Data::Dumper;
-use FT::Configuration;
-use FT::Schema;
 use File::Path qw(make_path);
 use Net::IP;
 use Socket;    # For inet_ntoa
+use DateTime;
+use DateTime::TimeZone;
 use vars '$AUTOLOAD';
+
+use FT::Configuration;
+use FT::Schema;
+use FT::IP;
 
 #
 # Constructor
@@ -25,15 +29,16 @@ use vars '$AUTOLOAD';
 sub new
 {
     my $class = shift;
-    my $self  = {};
+    $class = ref $class if ref $class;
+    my $self = {};
 
-    ( $self->{location}, $self->{debug}, $self->{dbname}, $self->{internal_network} ) = @_;
+    my ( $location, $internal_network ) = @_;
+
+    $self->{dbname} = 'FlowTrack.sqlite';
 
     # ensure we have some defaults
-    $self->{dbname}           ||= "FlowTrack.sqlite";
-    $self->{location}         ||= "Data";
-    $self->{debug}            ||= 0;
-    $self->{internal_network} ||= "192.168.1.0/24";
+    $self->{location}         = defined($location)         ? $location         : 'Data';
+    $self->{internal_network} = defined($internal_network) ? $internal_network : '192.168.1.0/24';
 
     # Setup space for connection pools and the database handle
     $self->{db_connection_pool} = {};
@@ -41,6 +46,7 @@ sub new
 
     bless( $self, $class );
 
+    $self->{tz_offset} = DateTime::TimeZone->new( name => 'local' )->offset_for_datetime( DateTime->now() );
     $self->{dbh} = $self->_initDB();
     $self->_createTables();
 
@@ -69,11 +75,13 @@ sub storeFlow
 
     my $dbh = $self->_initDB();
 
-    my $sql =
-      "INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets ) VALUES (?,?,?,?,?,?,?)";
+    my $sql = qq {
+      INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets, protocol ) 
+      VALUES (?,?,?,?,?,?,?,?);
+    };
 
     my $sth = $dbh->prepare($sql)
-      or croak( "Coudln't preapre SQL: " . $dbh->errstr() );
+      or $logger->logconfess( "Coudln't preapre SQL: " . $dbh->errstr() );
 
     foreach my $flow_rec ( @{$flows} )
     {
@@ -93,31 +101,26 @@ sub storeFlow
         }
     }
 
+    #
+    # Write batches of data at a time.  Tuned by $batch_size above
+    #
     foreach my $batch (@$insert_struct)
     {
         my @tuple_status;
         my $rows_saved =
           $sth->execute_array(
                                { ArrayTupleStatus => \@tuple_status },
-                               $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip}, $batch->{src_port},
-                               $batch->{dst_port}, $batch->{bytes},  $batch->{packets}
-          ) or croak( print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
+                               $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip},  $batch->{src_port},
+                               $batch->{dst_port}, $batch->{bytes},  $batch->{packets}, $batch->{protocol}
+          )
+          or $logger->logconfess(
+                              print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
 
         $total_saved += $rows_saved;
     }
 
     $logger->debug("Saved: $total_saved");
-    return;
-}
-
-#
-# Handle's building the reports (graphs, html, etc)
-#
-sub runReports
-{
-    my $self = shift();
-
-    return;
+    return 1;
 }
 
 #
@@ -126,36 +129,44 @@ sub runReports
 # returns an array of flows for the last x minutes
 sub getFlowsForLast
 {
-    my $self    = shift();
-    my ($range) = @_;
-    my $now     = time;
+    my $self = shift;
+    my ($duration) = @_;
 
-    my $start_time;
-    my $end_time;
-
-    $start_time = $now - ( $range * 60 );
-    $end_time = $now;
-
-    return $self->getFlowsInTimeRange( $start_time, $end_time );
+    return $self->getFlowsInTimeRange( time - ( $duration * 60 ), time );
 }
 
 #
 # Gets flows in the specified time range
 #
+# returns a list of:
+# {
+#   'protocol' => 6,
+#   'bytes' => 208,
+#   'src_port' => 62140,
+#   'flow_id' => 1171324,
+#   'packets' => 4,
+#   'dst_port' => 443,
+#   'src_ip' => 3232235786,
+#   'dst_ip' => 1249764389,
+#   'fl_time' => '1357418340.41598'
+# };'
+# 
+#
 sub getFlowsInTimeRange
 {
-    my $self = shift();
+    my $self = shift;
     my ( $start_time, $end_time ) = @_;
-    my $dbh = $self->_initDB();
+    my $dbh    = $self->_initDB();
+    my $logger = get_logger();
     my $ret_list;
 
-    my $sql = "SELECT * FROM raw_flow WHERE fl_time BETWEEN ? AND ? ORDER BY fl_time";
+    my $sql = 'SELECT * FROM raw_flow WHERE fl_time BETWEEN ? AND ? ORDER BY fl_time';
     my $sth = $dbh->prepare($sql);
     $sth->execute( $start_time, $end_time );
 
-    while ( my $ref = $sth->fetchrow_hashref )
+    while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($ref);
+        push @$ret_list, $flow_ref;
     }
 
     return $ret_list;
@@ -166,7 +177,7 @@ sub getFlowsInTimeRange
 #
 sub getIngressFlowsForLast
 {
-    my $self = shift();
+    my $self = shift;
     my ($duration) = @_;
 
     return $self->getIngressFlowsInTimeRange( time - ( $duration * 60 ), time );
@@ -178,7 +189,7 @@ sub getIngressFlowsForLast
 #
 sub getIngressFlowsInTimeRange
 {
-    my $self = shift();
+    my $self = shift;
     my ( $start_time, $end_time ) = @_;
     my $logger = get_logger();
     my $dbh    = $self->_initDB();
@@ -195,18 +206,69 @@ sub getIngressFlowsInTimeRange
         dst_ip BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
 
-    while ( my $ref = $sth->fetchrow_hashref )
+    while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($ref);
+        push @$ret_list, $flow_ref;
+    }
+
+    return $ret_list;
+}
+
+#
+# Return the list of internal flows for the last x minutes
+#
+sub getInternalFlowsForLast
+{
+    my $self = shift;
+    my ($duration) = @_;
+
+    return $self->getInternalFlowsInTimeRange( time - ( $duration * 60 ), time );
+
+}
+
+#
+# return internal flows for the given time range
+#
+sub getInternalFlowsInTimeRange
+{
+    my $self = shift;
+    my ( $start_time, $end_time ) = @_;
+    my $logger = get_logger();
+    my $dbh    = $self->_initDB();
+    my $ret_list;
+
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    my $sql = qq{
+        SELECT * FROM raw_flow WHERE 
+        fl_time >= ? AND fl_time <= ?
+        AND
+        src_ip BETWEEN ? AND ?
+        AND
+        dst_ip BETWEEN ? AND ?
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
+
+    $sth->execute( $start_time, $end_time,
+                   $internal_network->intip(),
+                   $internal_network->last_int(),
+                   $internal_network->intip(),
+                   $internal_network->last_int() )
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
+
+    while ( my $flow_ref = $sth->fetchrow_hashref )
+    {
+        push @$ret_list, $flow_ref;
     }
 
     return $ret_list;
@@ -217,10 +279,10 @@ sub getIngressFlowsInTimeRange
 #
 sub getEgressFlowsForLast
 {
-    my $self = shift();
+    my $self = shift;
     my ($duration) = @_;
 
-    return getEgressFlowsInTimeRange( time - ( $duration * 60 ), time );
+    return $self->getEgressFlowsInTimeRange( time - ( $duration * 60 ), time );
 }
 
 #
@@ -228,7 +290,7 @@ sub getEgressFlowsForLast
 #
 sub getEgressFlowsInTimeRange
 {
-    my $self = shift();
+    my $self = shift;
     my ( $start_time, $end_time ) = @_;
     my $dbh    = $self->_initDB();
     my $logger = get_logger();
@@ -247,81 +309,192 @@ sub getEgressFlowsInTimeRange
         dst_ip NOT BETWEEN ? AND ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
 
     $sth->execute( $start_time, $end_time,
                    $internal_network->intip(),
                    $internal_network->last_int(),
                    $internal_network->intip(),
                    $internal_network->last_int() )
-      or $logger->fatal( "failed executing $sql:" . $DBI::errstr );
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
 
-    while ( my $ref = $sth->fetchrow_hashref )
+    while ( my $flow_ref = $sth->fetchrow_hashref )
     {
-        push @$ret_list, $self->processFlowRecord($ref);
+        push @$ret_list, $flow_ref;
     }
 
     return $ret_list;
 }
 
-sub purgeData
+#
+# Get bucketed flows
+#
+# select count(*), sum(bytes), datetime(fl_time, 'unixepoch')
+#      from raw_flow group by round(fl_time/300) order by round(fl_time/300);
+#
+sub getSumBucketsForLast
 {
-    my $self   = shift();
-    my $dbh    = $self->_initDB();
+    my $self = shift;
+    my ( $bucket_size, $duration ) = @_;
+
+    return $self->getSumBucketsForTimeRange( $bucket_size, time - ( $duration * 60 ), time );
+
+}
+
+#
+# Get total ingress/egress packets/bytes/flows for each $bucket_size buckets in the database
+# bounded by start_time and end_time
+#
+# returns array of:
+# {
+#   'internal_flows' => 55,
+#   'internal_bytes' => 30570,
+#   'total_packets' => 783,
+#   'total_bytes' => 93701,
+#   'total_flows' => 156,
+#   'egress_bytes' => 34452,
+#   'egress_flows' => 64,
+#   'ingress_flows' => 37,
+#   'internal_packets' => 180,
+#   'ingress_bytes' => 28679,
+#   'egress_packets' => 360,
+#   'bucket_time' => '1356273960',
+#   'ingress_packets' => 243
+# },
+#
+sub getSumBucketsForTimeRange
+{
+    my $self = shift;
+    my ( $bucket_size, $start_time, $end_time ) = @_;
+
+    my $ret_list;
+    my $buckets_by_time;    # A hash per bucket for easy updating
+    my $bucket_time;        # Store the time of the current bucket
+
     my $logger = get_logger();
 
-    my $conf = FT::Configuration::getConf();
+    # Figure out what our "internal" range is
+    # used to determine ingress/egress/and internal traffic
+    my $internal_network = Net::IP->new( $self->{internal_network} );
 
-    my $watermark    = time - $conf->{purge_interval};
-    my $rows_deleted = 0;
+    # List of fields we want in the final hash
+    my $field_list = [
+                       'internal_flows',   'internal_bytes', 'total_packets',  'total_bytes',
+                       'total_flows',      'egress_bytes',   'egress_flows',   'ingress_flows',
+                       'internal_packets', 'ingress_bytes',  'egress_packets', 'ingress_packets'
+    ];
+
+    # Initialize our bucket hash.  We need to do this so that we can accurately reflect buckets
+    # that don't have flows. Because the database won't tell us about buckets that don't have
+    # any flows.
+    $buckets_by_time = _buildTimeBucketHash( $bucket_size, $start_time, $end_time, $field_list );
+
+    # Load the flows, skip the IP object creation
+    #
+    # splitting on the internal, egress, ingress using sql as the comparison speed
+    # was killing perf perl side.
+    #
+    my $internal_flows = $self->getInternalFlowsInTimeRange( $start_time, $end_time );
+    my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time );
+    my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time );
+
+    # Update internal flow counters
+    foreach my $flow (@$internal_flows)
+    {
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
+
+        $buckets_by_time->{$bucket}{internal_flows}++;
+        $buckets_by_time->{$bucket}{internal_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{internal_packets} += $flow->{packets};
+
+        # Update the global counters
+        $buckets_by_time->{$bucket}{total_flows}++;
+        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
+
+    }
+
+    # update ingress flow counters
+    foreach my $flow (@$ingress_flows)
+    {
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
+
+        $buckets_by_time->{$bucket}{ingress_flows}++;
+        $buckets_by_time->{$bucket}{ingress_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{ingress_packets} += $flow->{packets};
+
+        # Update the global counters
+        $buckets_by_time->{$bucket}{total_flows}++;
+        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
+
+    }
+
+    # update egress flow counters
+    foreach my $flow (@$egress_flows)
+    {
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
+
+        $buckets_by_time->{$bucket}{egress_flows}++;
+        $buckets_by_time->{$bucket}{egress_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{egress_packets} += $flow->{packets};
+
+        # Update the global counters
+        $buckets_by_time->{$bucket}{total_flows}++;
+        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
+        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
+
+    }
+
+    # build our return list
+    foreach my $bucket_record ( sort { $a <=> $b } keys %$buckets_by_time )
+    {
+        push @$ret_list, $buckets_by_time->{$bucket_record};
+    }
+
+    return $ret_list;
+}
+
+#
+# Optionally takes a timestamp for the purge_interval
+#
+# returns # of rows purged.  -1 on error
+#
+sub purgeData
+{
+    my $self             = shift;
+    my ($purge_interval) = @_;
+    my $dbh              = $self->_initDB();
+    my $logger           = get_logger();
+    my $rows_deleted     = 0;
+
+    if ( !defined($purge_interval) )
+    {
+        my $conf = FT::Configuration::getConf();
+
+        $purge_interval = time - $conf->{purge_interval};
+
+        return -1 if ( !defined($purge_interval) );
+    }
 
     my $sql = qq{
         DELETE FROM raw_flow WHERE fl_time < ?
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->fatal( "failed to prepare:" . $DBI::errstr );
-
-    $rows_deleted = $sth->execute($watermark) or $logger->fatal( "Delete failed: " . $DBI::errstr );
-
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
+    $rows_deleted = $sth->execute($purge_interval) or $logger->logconfess( 'Delete failed: ' . $DBI::errstr );
     $logger->debug("Purged: $rows_deleted") if ( $rows_deleted > 0 );
 
-    return;
+    return $rows_deleted;
 }
 
-#
-# This routine cleans up a single FlowRecord (select * from the raw_flow table)
-# takes a hashref representing a single record from the raw_flow table;
-# returns the same record with some data conversion done (Net::IP Objects, converted port #s etc)
-sub processFlowRecord
+# returns true if the provided IP is in the internal network
+sub isInternal
 {
     my $self = shift();
-    my ($flow_record) = @_;
-    my $ret_struct;
+    my $ip   = shift();
 
-    foreach my $key ( keys %{$flow_record} )
-    {
-
-        # Do the data conversion
-        given ($key)
-        {
-
-            #IP Addresses
-            # Want to leave the original address there as well, in case we can't
-            # get to the object
-            when (/_ip$/)
-            {
-                $ret_struct->{$key} = $flow_record->{$key};
-                $ret_struct->{ $key . "_obj" } =
-                  Net::IP->new( join( '.', unpack( 'C4', pack( 'N', $flow_record->{$key} ) ) ) );
-            }
-
-            # if we don't do anything else, just copy the data
-            default { $ret_struct->{$key} = $flow_record->{$key} }
-
-        }
-    }
-
-    return $ret_struct;
+    return FT::IP::IPOverlap( $self->{internal_network}, $ip );
 
 }
 
@@ -336,7 +509,6 @@ sub processFlowRecord
 # the DB, stores the handle in the object, and returns the dbh
 #
 # takes self
-# croaks on error
 #
 sub _initDB
 {
@@ -357,7 +529,7 @@ sub _initDB
 
         my $dbfile = $self->{location} . "/" . $db_name;
 
-        my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbfile", "", "" );
+        my $dbh = DBI->connect( "dbi:SQLite:dbname=$dbfile", '', '' );
 
         if ( defined($dbh) )
         {
@@ -367,8 +539,7 @@ sub _initDB
         }
         else
         {
-            $logger->fatal( "_initDB failed: $dbfile" . $DBI::errstr );
-            croak;
+            $logger->logconfess( "_initDB failed: $dbfile" . $DBI::errstr );
         }
     }
 }
@@ -381,25 +552,27 @@ sub _initDB
 # aggregation etc.  We'll see.
 #
 # Takes nothing
-# croaks on error
+# fatal on error
 #
 sub _createTables
 {
     my ($self) = @_;
-    my $tables = [qw/raw_flow/];
+    my $tables = [qw/raw_flow recent_talkers/];
     my $logger = get_logger();
 
     foreach my $table (@$tables)
     {
+        $logger->debug( "Check/Create: " . $table );
         if ( !$self->_tableExists($table) )
         {
             my $dbh = $self->_initDB();
             my $sql = $self->get_create_sql($table);
 
+            $logger->debug( Dumper($sql) );
+
             if ( !defined($sql) || $sql eq "" )
             {
-                $logger->fatal("Couldn't create SQL statement for $table");
-                die;
+                $logger->logconfess("Couldn't create SQL statement for $table");
             }
 
             my $sth = $dbh->prepare($sql);
@@ -407,8 +580,7 @@ sub _createTables
 
             if ( !defined($rv) )
             {
-                $logger->fatal($DBI::errstr);
-                die;
+                $logger->logconfess($DBI::errstr);
             }
         }
     }
@@ -419,7 +591,7 @@ sub _createTables
 # returns 1 if the named table exists
 sub _tableExists
 {
-    my $self = shift();
+    my $self = shift;
     my ($table_name) = @_;
 
     my $dbh = $self->_initDB();
@@ -432,7 +604,8 @@ sub _tableExists
 # Check to make sure the data directory exists, if not, create it.
 sub _checkDirs
 {
-    my $self = shift();
+    my $self   = shift;
+    my $logger = get_logger();
     my $err;
 
     unless ( -d $self->{location} )
@@ -443,10 +616,55 @@ sub _checkDirs
     }
 
     # Make sure the directory exists
-    croak( $self->{location} . " strangely absent" )
+    $logger->logconfess( $self->{location} . ' strangely absent' )
       unless ( -d $self->{location} );
 
     return;
+}
+
+#
+# Builds a hash of the appropriate number of
+# time buckets between start_time and end_time in time_bucket
+# intervals.
+#
+# Hash has fields for total bytes/flows/packets for internal, egress, ingress flows
+sub _buildTimeBucketHash
+{
+    my ( $bucket_size, $start_time, $end_time, $field_list ) = @_;
+
+    my $buckets_by_time;
+
+    #what's our first bucket?
+    my $bucket_time = _calcBucketTime( $start_time, $bucket_size );
+
+    # Initalize the hash
+    while ( $bucket_time < $end_time )
+    {
+        $buckets_by_time->{$bucket_time} = { 'bucket_time' => $bucket_time, };
+
+        # Now add and initialize the fields in $field_list
+        foreach my $field (@$field_list)
+        {
+            $buckets_by_time->{$bucket_time}{$field} = 0;
+        }
+
+        # On to the next bucket
+        $bucket_time += $bucket_size;
+    }
+
+    return $buckets_by_time;
+
+}
+
+#
+# Takes: time, bucket size
+# Returns: time rounded down to the closest bucket aligned time.
+#
+sub _calcBucketTime
+{
+    my ( $time, $bucket_size ) = @_;
+
+    return int( $time - ( int($time) % $bucket_size ) );
 }
 
 #
@@ -459,7 +677,7 @@ sub AUTOLOAD
 
     # Need to shift off self.  Dont't think that FT::Schema is going to need it
     # but I'm not sure.  Either way, we want it off of @_;
-    my $self = shift();
+    my $self = shift;
 
     given ($AUTOLOAD)
     {
@@ -488,17 +706,5 @@ sub AUTOLOAD
 
     die "Couldn't find $AUTOLOAD";
 }
+
 1;
-__END__
-
-=head1 FlowTrack
-
-Routines surrounding the processing of the flowtrack data.
-
-Only the public methods
-
-=head2 new
-
-FlowTrack->new(<db directory>,<logging 1 == on>, <dbname>);
-
-FlowTrack->storeFlow($flow_list);

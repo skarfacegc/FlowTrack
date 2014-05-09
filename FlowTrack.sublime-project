@@ -1,0 +1,21 @@
+{
+    "folders": [
+        {
+            "path": ".",
+            "file_exclude_patterns": [
+                ".gitignore",
+                "*sublime*"
+            ]
+        }
+    ],
+    "build_systems": [
+        {
+            "name": "Perl Test and Cover",
+            "working_dir": "$project_path",
+            "shell":true,
+            "cmd": [
+                "$project_path/runTests"
+            ]
+        }
+    ]
+}

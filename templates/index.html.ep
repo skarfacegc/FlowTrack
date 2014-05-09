@@ -1,28 +1,51 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<head>
-    <title>FlowTrack</title>
+    <head>
+        <title>
+            FlowTrack
+        </title>
+
+        <script type="text/javascript" charset="utf8" src="/js/jquery-1.8.1.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/graphs.js"> </script>
+
+        <link type='text/css' href='http://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet'>
+        <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="stylesheet">
+        <link type="text/css" href="/css/col.css" rel="stylesheet">
+        <link type="text/css" href="/css/3cols.css" rel="stylesheet">
+
+        <link type="text/css" href="/css/base.css" rel="stylesheet">
+
+
+        <script type="text/javascript">
+            $(document).ready(function($) 
+            {
     
-    <!-- jQuery -->
-    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.1.min.js"></script>
-    
-    <script>
-    $(document).ready(function($) 
-    {
+                // Top Graph              
+                getGraphData();
+                setInterval(getGraphData, 120000);
+
+                // Talker Grid
+                getTalkerData();
+                setInterval(getTalkerData, 120000);
+
+            });
+        </script>
+    </head>
+    <body>
         
-
-    });
-    
-    </script>
-
-
-
-</head>
-<body>
+        <div id="wrapper">
+            <div class="content section group">
+                <div id="topGraph" class="col span_3_of_3"></div>
+            </div>
 
 
-
-
-
-</body>
+            <div id="talker_grid">
+              
+            </div>
+        </div>
+    </body>
 </html>
