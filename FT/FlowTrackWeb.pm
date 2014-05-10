@@ -29,6 +29,7 @@ sub startup
     $r->route('/json/FlowsForLast/:timerange')->to( controller => 'main', action => 'simpleFlowsJSON' );
     $r->route('/json/LastHourTotals/:bucketsize')->to( controller => 'main', action => 'aggergateBucketJSON' );
     $r->route('/json/topTalkers/:talker_count')->to(controller => 'main', action => 'topTalkersJSON');
+    $r->route('/json/dns/#dns')->to(controller => 'main', action => 'Resolve');
 
     return;
 }

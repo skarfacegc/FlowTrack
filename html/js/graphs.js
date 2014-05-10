@@ -57,7 +57,7 @@ function getTalkerData()
 function onTalkerDataReceived(talkers)
 {
     var div_count = 0;
-    var html_slug = ""
+    var html_slug = "";
     $("#talker_grid").empty();
 
     $.each(talkers, function() {
