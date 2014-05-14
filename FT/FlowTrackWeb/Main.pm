@@ -51,11 +51,11 @@ sub simpleFlowsJSON
     my $flow_struct = $FT->getFlowsForLast($timerange);
 
     my $ret_struct = {
-     sEcho               => 3,
-     iTotalRecords       => defined($flow_struct) ? scalar @$flow_struct : 0,
-     iTotalDisplayRecors => defined($flow_struct) ? scalar @$flow_struct : 0,
-     aaData              => [],
- };
+                       sEcho               => 3,
+                       iTotalRecords       => defined($flow_struct) ? scalar @$flow_struct : 0,
+                       iTotalDisplayRecors => defined($flow_struct) ? scalar @$flow_struct : 0,
+                       aaData              => [],
+    };
 
     # Don't try to construct aaData if we don't have data
     if ( defined($flow_struct) )
@@ -70,8 +70,8 @@ sub simpleFlowsJSON
             my $dst_ip_obj = FT::IP::getIPObj( $flow->{dst_ip} );
 
             my $row_struct = [
-            $timestamp,        $src_ip_obj->ip(), $flow->{src_port}, $dst_ip_obj->ip(),
-            $flow->{dst_port}, $flow->{protocol}, $flow->{bytes},    $flow->{packets}
+                               $timestamp,        $src_ip_obj->ip(), $flow->{src_port}, $dst_ip_obj->ip(),
+                               $flow->{dst_port}, $flow->{protocol}, $flow->{bytes},    $flow->{packets}
             ];
 
             push( @{ $ret_struct->{aaData} }, $row_struct );
@@ -149,19 +149,19 @@ sub topTalkersJSON
 
     foreach my $recent_talker (@$recent_talker_list)
     {
-        
+
         my $talker_struct;
         my $internal_network_obj = FT::IP::getIPObj( $recent_talker->{internal_ip} );
         my $external_network_obj = FT::IP::getIPObj( $recent_talker->{external_ip} );
         my $update_time          = strftime( "%r", localtime( $recent_talker->{last_update} ) );
 
-        $talker_struct->{internal_ip} = $internal_network_obj->ip();
-        $talker_struct->{external_ip} = $external_network_obj->ip();
-        $talker_struct->{internal_ip_name} = FT::IP::Resolve($talker_struct->{internal_ip});
-        $talker_struct->{external_ip_name} = FT::IP::Resolve($talker_struct->{external_ip});
-        $talker_struct->{update_time} = $update_time;
-        $talker_struct->{score}       = $recent_talker->{score};
-        $talker_struct->{id} = $recent_talker->{internal_ip} . $recent_talker->{external_ip};
+        $talker_struct->{internal_ip}      = $internal_network_obj->ip();
+        $talker_struct->{external_ip}      = $external_network_obj->ip();
+        $talker_struct->{internal_ip_name} = FT::IP::Resolve( $talker_struct->{internal_ip} );
+        $talker_struct->{external_ip_name} = FT::IP::Resolve( $talker_struct->{external_ip} );
+        $talker_struct->{update_time}      = $update_time;
+        $talker_struct->{score}            = $recent_talker->{score};
+        $talker_struct->{id}               = $recent_talker->{internal_ip} . $recent_talker->{external_ip};
 
         push @$cooked_talker_list, $talker_struct;
 

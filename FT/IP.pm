@@ -42,33 +42,30 @@ sub IPOverlap
     return $network_obj->overlaps($ip_obj) == $IP_B_IN_A_OVERLAP;
 }
 
-
 #
 # Turn an IP into a name, turn a name into an IP.
-# 
-# Returns whatever is in the first PTR or A record.  
+#
+# Returns whatever is in the first PTR or A record.
 # If no PTR or A is found returns ""
 #
 sub Resolve
 {
     my $to_resolve = shift();
 
-    my $res = Net::DNS::Resolver->new();
+    my $res    = Net::DNS::Resolver->new();
     my $packet = $res->search($to_resolve);
 
     # Would like to do this a bit better
-    return "" if(!defined($packet));
+    return "" if ( !defined($packet) );
 
     my @rr = $packet->answer;
 
-    
-
     # Naively return whatever the first record tells us.
-    if($rr[0]->type eq 'PTR')
+    if ( $rr[0]->type eq 'PTR' )
     {
         return $rr[0]->ptrdname;
     }
-    elsif($rr[0]->type eq 'A')
+    elsif ( $rr[0]->type eq 'A' )
     {
         return $rr[0]->address;
     }
@@ -77,6 +74,5 @@ sub Resolve
         return "";
     }
 }
-
 
 1;
