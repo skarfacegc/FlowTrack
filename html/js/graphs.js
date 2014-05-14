@@ -70,8 +70,10 @@ function onTalkerDataReceived(talkers)
         }
 
         html_slug = html_slug + "<div class='content gridItem col span_1_of_3'>"+
+        "<div class='internal_ip_name'>"+ this.internal_ip_name +" &nbsp;</div>" +
         "<span class='internal_ip'>" + this.internal_ip + "</span>" + 
         "<span class='external_ip'>" + this.external_ip + "</span>" +
+        "<div class='external_ip_name'>&nbsp;"+ this.external_ip_name +"</div>" +
         "<div id='" + this.id +"' class='talkerGraph'></div>" +
         "</div>";
 

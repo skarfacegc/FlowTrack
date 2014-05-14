@@ -55,6 +55,10 @@ sub Resolve
 
     my $res = Net::DNS::Resolver->new();
     my $packet = $res->search($to_resolve);
+
+    # Would like to do this a bit better
+    return "" if(!defined($packet));
+
     my @rr = $packet->answer;
 
     

@@ -29,9 +29,10 @@ body {
 }
 
 .gridItem {
-    font-family:  'Ubuntu Mono', sans-serif;
-    font-size: larger;
-    color: #4D7593;
+ /* font-family:  'Ubuntu Mono', sans-serif;*/
+ font-family: 'Open Sans', sans-serif;
+ font-size: larger;
+ color: #4D7593;
 }
 
 
@@ -44,6 +45,25 @@ body {
     float: right;
     margin-left: 1em;
     width: 50%;
+}
+
+.internal_ip_name {
+    text-align:left;
+    margin-right: 5em;
+    margin-left: 2px;
+    font-size: x-small;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.external_ip_name {
+    float:right;
+    text-align: right;
+    margin-left: 5em;
+    margin-right: 2px;
+    font-size: x-small;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .tickLabel, .legendLabel {
