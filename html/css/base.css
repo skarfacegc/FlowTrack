@@ -29,20 +29,19 @@ body {
 }
 
 .gridItem {
- /* font-family:  'Ubuntu Mono', sans-serif;*/
- font-family: 'Open Sans', sans-serif;
- font-size: larger;
- color: #4D7593;
+   font-family: 'Open Sans', sans-serif;
+   color: #4D7593;
 }
-
 
 .internal_ip {
     text-align: left;
+    font-size: larger;    
     margin-left: 1em;
     width: 50%;
 }
 .external_ip {
     float: right;
+    font-size: larger;
     margin-left: 1em;
     width: 50%;
 }

@@ -12,8 +12,9 @@
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"> </script>
         <script type="text/javascript" charset="utf8" src="/js/graphs.js"> </script>
 
-        <%# <link type='text/css' href='http://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet'> %>
+        <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
         <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+        
         <link type="text/css" href="/css/smoothness/jquery-ui-1.8.23.custom.css" rel="stylesheet">
         <link type="text/css" href="/css/col.css" rel="stylesheet">
         <link type="text/css" href="/css/3cols.css" rel="stylesheet">

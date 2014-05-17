@@ -1,3 +1,10 @@
+// talkerData will hold data about the talker grid
+talkerData = new Object();
+talkerData.lastUpdate = new Object();
+
+
+
+
 function onGraphDataReceived(series)
 {
     // This is the flot charts options struct
@@ -57,12 +64,45 @@ function getTalkerData()
 function onTalkerDataReceived(talkers)
 {
     var div_count = 0;
+    var grid_count = 0;    
     var html_slug = "";
+    var grid_change = "";
     $("#talker_grid").empty();
 
     $.each(talkers, function() {
 
         div_count++;
+        grid_count++;
+
+        // Check to see if this pair is in the current list.
+        // also check to see if position has changed.
+        grid_change = "";
+        if(this.id in talkerData.lastUpdate)
+        {
+            if(grid_count < talkerData.lastUpdate[this.id])
+            {   
+                grid_change = "fa-arrow-circle-down";
+            }
+            else if(grid_count == talkerData.lastUpdate[this.id])
+            {
+                grid_change = "";
+            }
+            else
+            {
+                grid_change = "fa-arrow-circle-up";
+            }
+        }
+        else
+        {
+            grid_change = "fa-plus-circle";
+        }
+
+        // record the existance and position of this talker pair
+        // used to highlight new talkers and to show talker movement
+        talkerData.lastUpdate[this.id] = grid_count;
+
+        console.log("GC: "+ grid_change);
+
 
         if(div_count == 1)
         {
@@ -71,6 +111,7 @@ function onTalkerDataReceived(talkers)
 
         html_slug = html_slug + "<div class='content gridItem col span_1_of_3'>"+
         "<div class='internal_ip_name'>"+ this.internal_ip_name +" &nbsp;</div>" +
+        "<span class='change_indicator fa "+ grid_change + " fa-fw'></span>"+
         "<span class='internal_ip'>" + this.internal_ip + "</span>" + 
         "<span class='external_ip'>" + this.external_ip + "</span>" +
         "<div class='external_ip_name'>&nbsp;"+ this.external_ip_name +"</div>" +
