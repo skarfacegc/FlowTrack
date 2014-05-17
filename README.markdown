@@ -1,15 +1,3 @@
-**Current work is happening on feature/graphing**
-
-
-Sample Graph View (in the feature/graphing branch currently)
-
-![Graph](http://flowtrack.info/images/TalkerGrid2.png)
-
-Sample view of raw flows
-
-![TableView](http://pictures.baltdad.com/ExternalPictures/FlowTracktableView.png)
-
-
 About
 -----
 FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
@@ -31,6 +19,9 @@ Installation & Use
 
 ### Requirements
 (I will likely add new stuff to this list, such as rrdtool):
+- Working SQLite Install
+- Some source of flow data (rflowd from dd-wrt works great)
+    - May or may not work with ipfix
 - Perl 5.10+  (tested on 5.16.1)
     - Mojolicious
     - Net::Server
@@ -42,6 +33,8 @@ Installation & Use
     - Net::IP
     - DateTime
     - DateTime::Timezone (likely installed by the above)
+    - Net::DNS
+    
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
 
@@ -144,14 +137,16 @@ Planned Roadmap
     - ~~Docs~~
     - ~~Cleanup dead files~~
 - **Release 0.0.2**
-    - Active Talker Grid
+    - ~~Active Talker Grid~~
     - Active Talker Graphs
-    - Main Ingress/Egress Graph
+    - ~~DNS Resolution~~
+    - ~~grid change indicators~~
+    - ~~Main Ingress/Egress Graph~~
 - **Future**
     - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX 
       source.  Gonna look at Yaf at some pt)
     - HTTP Auth
-    - Refactor config loading (buggy as hell right now)
+    - Refactor config loading (not happy with the current solution)
 
 
 
