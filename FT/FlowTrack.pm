@@ -329,15 +329,16 @@ sub getEgressFlowsInTimeRange
 #
 # Get bucketed flows
 #
-# select count(*), sum(bytes), datetime(fl_time, 'unixepoch')
-#      from raw_flow group by round(fl_time/300) order by round(fl_time/300);
+# Takes: Bucket size in mintues, how may minutes ago to search
+#
+# ie getSumBucketsForLast(2, 180) will get the last 3 hours of samples in 2 minute buckets
 #
 sub getSumBucketsForLast
 {
     my $self = shift;
     my ( $bucket_size, $duration ) = @_;
 
-    return $self->getSumBucketsForTimeRange( $bucket_size, time - ( $duration * 60 ), time );
+    return $self->getSumBucketsForTimeRange( $bucket_size * 60, time - ( $duration * 60 ), time );
 
 }
 
