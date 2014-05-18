@@ -138,11 +138,14 @@ Planned Roadmap
     - ~~Cleanup dead files~~
 - **Release 0.0.2**
     - ~~Active Talker Grid~~
-    - Active Talker Graphs
     - ~~DNS Resolution~~
     - ~~grid change indicators~~
     - ~~Main Ingress/Egress Graph~~
+    - Active Talker Graphs
+    - Link Pair grid items to table view
 - **Future**
+    - Per host detail page
+    - UI Driven time range selection
     - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX 
       source.  Gonna look at Yaf at some pt)
     - HTTP Auth
