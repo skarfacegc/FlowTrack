@@ -100,8 +100,9 @@ sub aggergateBucketJSON
     my $self   = shift;
     my $logger = get_logger();
 
+    my $minutes_back = $self->param('minutes');
     my $bucketsize = $self->param('bucketsize');
-    my $flow_buckets = $FT->getSumBucketsForLast( 2, 180 );
+    my $flow_buckets = $FT->getSumBucketsForLast( $bucketsize, $minutes_back );
     my $ret_struct;
 
     # building a datastructure keyed by the field names so we can build a

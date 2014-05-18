@@ -45,7 +45,7 @@ sub startup
     $r->route('/json/FlowsForLast/:timerange')->to( controller => 'main', action => 'tableViewJSON' );
 
     # Main graph retrevial routine
-    $r->route('/json/GraphTotalsForLast/:bucketsize')->to( controller => 'main', action => 'aggergateBucketJSON' );
+    $r->route('/json/GraphTotalsForLast/:minutes/:bucketsize')->to( controller => 'main', action => 'aggergateBucketJSON' );
 
     # Gets the data for the talker grid
     $r->route('/json/topTalkers/:talker_count')->to( controller => 'main', action => 'topTalkersJSON' );
