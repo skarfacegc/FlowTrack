@@ -20,6 +20,9 @@ our $DATA_DIR         = './Data';
 our $FT = FT::FlowTrack->new( $DATA_DIR, $INTERNAL_NETWORK );
 our $REPORTING = FT::Reporting->new( { data_dir => $DATA_DIR, internal_network => $INTERNAL_NETWORK } );
 
+#
+# Top level page
+#
 sub indexPage
 {
     my $self = shift;
@@ -28,7 +31,11 @@ sub indexPage
     return;
 }
 
-sub simpleFlows
+
+#
+# Tableview
+#
+sub tableView
 {
     my $self = shift;
 
@@ -42,7 +49,7 @@ sub simpleFlows
     return;
 }
 
-sub simpleFlowsJSON
+sub tableViewJSON
 {
     my $self   = shift;
     my $logger = get_logger();
