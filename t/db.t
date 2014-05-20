@@ -103,7 +103,6 @@ sub dbCreation
     #
     my $db_location = getTmp();
 
-
     my $db_creat = FT::FlowTrack->new($db_location);
 
     my $dbh = $db_creat->_initDB();
@@ -144,7 +143,7 @@ sub dbRawQueryTests
     # using canned data generated in buildRawFlows
     ok( !$db_creat->storeFlow(),                                   "Store no flows" );
     ok( $db_creat->storeFlow( buildRawFlows() ),                   "Store Flow" );
-    ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 105,       "Flows for last" );
+    ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 106,       "Flows for last" );
     ok( scalar( @{ $db_creat->getIngressFlowsForLast(5) } ) == 53, "IngressFlowsFlorLast" );
     ok( scalar( @{ $db_creat->getEgressFlowsForLast(5) } ) == 52,  "EgressFlowsFlorLast" );
 
@@ -167,6 +166,13 @@ sub dbRawQueryTests
         "compare single record and default time sort"
     );
 
+    #
+    # Add a single record at the beginning of time so we have some way
+    # to make sure the purge isn't overly agressive
+    # use the sample record from above, set it's time to 0 and store away.
+    $sample->[0]{fl_time} = 0;
+    $db_creat->storeFlow( [ $sample->[0] ] );
+
     # now test purging
     ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
 
@@ -184,20 +190,25 @@ sub dbByteBucketQueryTests
     my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
     $db_creat->storeFlow( buildFlowsForBucketTest(300) );
 
-    my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, 0, time );
-
+    my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, time - 299702, time );
 
     # Now test some bucketing
     ok( scalar @{$tmp_flows} == 1000, "Buckets in time range" );
 
     # Make sure the sums work
-    ok( $tmp_flows->[0]{ingress_bytes} == 12288 &&
-        $tmp_flows->[0]{egress_bytes} == 24576 &&
-        $tmp_flows->[0]{total_bytes} == 36864,  "Byte Sum" );
-    
-    ok( $tmp_flows->[0]{ingress_packets} == 768 &&
-        $tmp_flows->[0]{egress_packets} == 1536 &&
-        $tmp_flows->[0]{total_packets} == 2304,  "Packet Sum" );
+    ok(
+        $tmp_flows->[1]{ingress_bytes} == 12288
+          && $tmp_flows->[1]{egress_bytes} == 24576
+          && $tmp_flows->[1]{total_bytes} == 36864,
+        "Byte Sum"
+    );
+
+    ok(
+        $tmp_flows->[1]{ingress_packets} == 768
+          && $tmp_flows->[1]{egress_packets} == 1536
+          && $tmp_flows->[1]{total_packets} == 2304,
+        "Packet Sum"
+    );
 
     # Make sure that the relative call returns something. getting the time alignment correct
     # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
@@ -222,7 +233,7 @@ sub buildRawFlows
 
     # First we add a flow at the beginning of time (to test our date math)
     my $ancient_flow = {
-                         fl_time  => 0,            # The dark ages
+                         fl_time  => $time - 2,    # Add a somewhat old packet.
                          src_ip   => 167837698,    # 10.1.0.2
                          dst_ip   => 167772169,    # 10.0.0.9
                          src_port => 1024,
@@ -286,6 +297,7 @@ sub buildFlowsForBucketTest
     my $total_flows          = 1000;    # Total number of both egress and ingress flows to return
     my $current_bucket       = 0;       # holds the current bucket
     my $i;
+
     for ( $i = 0 ; $i < $total_flows ; $i++ )
     {
         for ( my $j = 0 ; $j < $flows_in_each_bucket ; $j++ )
@@ -316,6 +328,7 @@ sub buildFlowsForBucketTest
         }
 
         $current_bucket += $bucket_size;
+
     }
 
     return $flow_list;
