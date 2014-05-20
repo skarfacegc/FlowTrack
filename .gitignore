@@ -10,3 +10,4 @@ Profiling/
 Data/
 .perlcriticrc
 cover_db/*
+TEST_FT*
