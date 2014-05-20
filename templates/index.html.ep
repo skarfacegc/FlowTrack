@@ -27,8 +27,8 @@
             {
     
                 // Top Graph              
-                getGraphData();
-                setInterval(getGraphData, 120000);
+                getMainGraphData();
+                setInterval(getMainGraphData, 120000);
 
                 // Talker Grid
                 getTalkerData();

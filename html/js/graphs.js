@@ -38,7 +38,7 @@ function onGraphDataReceived(series)
     $.plot($("#topGraph"), [series.ingress_bytes, series.egress_bytes], options);
 }
 
-function getGraphData()
+function getMainGraphData()
 {
     $.ajax({
         url:"/json/GraphTotalsForLast/180/2",
