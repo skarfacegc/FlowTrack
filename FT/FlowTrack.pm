@@ -29,7 +29,7 @@ use FT::IP;
 sub new
 {
     my $class = shift;
-    
+
     my $self = {};
 
     my ( $location, $internal_network ) = @_;
@@ -69,9 +69,6 @@ sub storeFlow
     my $batch_counter = 0;
     my $total_saved   = 0;
     my $batch_size    = 100;
-
-    # Don't do anything if we don't have flows
-    return unless ( defined($flows) );
 
     my $dbh = $self->_initDB();
 
@@ -150,7 +147,7 @@ sub getFlowsForLast
 #   'dst_ip' => 1249764389,
 #   'fl_time' => '1357418340.41598'
 # };'
-# 
+#
 #
 sub getFlowsInTimeRange
 {

@@ -141,7 +141,7 @@ sub dbRawQueryTests
 
     # Verify creation and retrieval
     # using canned data generated in buildRawFlows
-    ok( !$db_creat->storeFlow(),                                   "Store no flows" );
+    ok( $db_creat->storeFlow(),                                    "Store no flows" );
     ok( $db_creat->storeFlow( buildRawFlows() ),                   "Store Flow" );
     ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 106,       "Flows for last" );
     ok( scalar( @{ $db_creat->getIngressFlowsForLast(5) } ) == 53, "IngressFlowsFlorLast" );
