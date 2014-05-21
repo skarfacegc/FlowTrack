@@ -29,7 +29,7 @@ use FT::IP;
 sub new
 {
     my $class = shift;
-    $class = ref $class if ref $class;
+    
     my $self = {};
 
     my ( $location, $internal_network ) = @_;
