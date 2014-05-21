@@ -81,7 +81,7 @@ sub storeFlow
     };
 
     my $sth = $dbh->prepare($sql)
-      or $logger->logconfess( "Coudln't preapre SQL: " . $dbh->errstr() );
+      or $logger->logconfess( "Couldn't preapre SQL: " . $dbh->errstr() );
 
     foreach my $flow_rec ( @{$flows} )
     {
