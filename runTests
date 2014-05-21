@@ -6,5 +6,5 @@ then
 fi
 
 cover --delete 
-PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,condition,time,+ignore,".*prove.*","\.t" prove --verbose
+PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove --verbose
 cover
