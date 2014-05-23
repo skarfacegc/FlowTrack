@@ -31,7 +31,6 @@ sub indexPage
     return;
 }
 
-
 #
 # Tableview
 #
@@ -86,7 +85,7 @@ sub tableViewJSON
 
     }
 
-    $self->render( { json => $ret_struct } );
+    $self->render( json => $ret_struct );
 
     return;
 }
@@ -101,7 +100,7 @@ sub aggergateBucketJSON
     my $logger = get_logger();
 
     my $minutes_back = $self->param('minutes');
-    my $bucketsize = $self->param('bucketsize');
+    my $bucketsize   = $self->param('bucketsize');
     my $flow_buckets = $FT->getSumBucketsForLast( $bucketsize, $minutes_back );
     my $ret_struct;
 
@@ -139,7 +138,7 @@ sub aggergateBucketJSON
 
     }
 
-    $self->render( { json => $buckets_by_field } );
+    $self->render( json => $buckets_by_field );
 
     return;
 
@@ -175,7 +174,7 @@ sub topTalkersJSON
 
     }
 
-    $self->render( { json => $cooked_talker_list } );
+    $self->render( json => $cooked_talker_list );
 
     return;
 }
@@ -187,7 +186,7 @@ sub Resolve
 
     $logger->debug( "DNS: " . $self->param('dns') );
 
-    $self->render( { json => { result => FT::IP::Resolve( $self->param('dns') ) } } );
+    $self->render( json => { result => FT::IP::Resolve( $self->param('dns') ) } );
 }
 
 1;
