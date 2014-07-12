@@ -537,7 +537,7 @@ sub _initDB
         }
         else
         {
-            $logger->logconfess( "_initDB failed: $dbfile" . $DBI::errstr );
+            $logger->logconfess( "_initDB failed: $dbfile");
         }
     }
 }

@@ -28,3 +28,7 @@ Main graph call stack:
             [  Array of flows/bytes/packets ]
             
 ```
+
+
+Simplify _DBInit by siwtching to ArrayTupleFetch
+http://atrueswordsman.wordpress.com/2009/07/10/perl-dbi-batch-uploadinsert-row-wise-vs-column-wise-binding/
