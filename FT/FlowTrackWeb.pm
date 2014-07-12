@@ -24,6 +24,8 @@ sub startup
     # Load plugins
     $self->plugin('DefaultHelpers');
 
+    $self->secrets(['3305CA4A-DE4D-4F34-9A38-F17E0A656A25']);
+
     my $r = $self->routes;
 
     #
