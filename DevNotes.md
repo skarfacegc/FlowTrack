@@ -5,7 +5,7 @@ Notes while I'm coding
 Main graph call stack:
 - getGraphData()  graphs.js   Sets load timer
     - /json/LastHourTotals/<arg> -> FT::FlowTrackWeb::Main::aggergateBucketJSON(arg)
-        - FT::FlowTrack::getSumBucketsForLast( 120, 180 )  ** This needs to take variable args **
+        - FT::FlowTrack::getSumBucketsForLast( 120, 180 )  ~~** This needs to take variable args **~~ DONE
 
 
 - Add ip pairs to getSumBucketsForTimeRange
@@ -30,5 +30,5 @@ Main graph call stack:
 ```
 
 
-Simplify _DBInit by siwtching to ArrayTupleFetch
-http://atrueswordsman.wordpress.com/2009/07/10/perl-dbi-batch-uploadinsert-row-wise-vs-column-wise-binding/
+~~Simplify flow storage by siwtching to ArrayTupleFetch
+http://atrueswordsman.wordpress.com/2009/07/10/perl-dbi-batch-uploadinsert-row-wise-vs-column-wise-binding/~~ DONE

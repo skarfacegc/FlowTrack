@@ -63,12 +63,9 @@ sub new
 sub storeFlow
 {
     my ( $self, $flows ) = @_;
-    my $insert_struct;
-    my $insert_queue;
     my $logger        = get_logger();
-    my $batch_counter = 0;
     my $total_saved   = 0;
-    my $batch_size    = 100;
+    my $total_flows   = 0;
 
     my $dbh = $self->_initDB();
 
@@ -80,43 +77,27 @@ sub storeFlow
     my $sth = $dbh->prepare($sql)
       or $logger->logconfess( "Couldn't preapre SQL: " . $dbh->errstr() );
 
-    foreach my $flow_rec ( @{$flows} )
-    {
+    $total_flows = scalar( @{$flows} );
 
-        # creat a datastructure that looks like this
-        # $insert_struct->[batch]{field_name1} = [ array of all values for field_name1 ]
-        # $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
-        #
-        # To be used by execute array
-        push( @{ $insert_struct->[$batch_counter]{$_} }, $flow_rec->{$_} ) for keys %$flow_rec;
-
-        $insert_queue++;
-        if ( $insert_queue > $batch_size )
+    # ArrayTupleFetch is called repeatedly until it returns undef.  Shifts off flow records from flows
+    # and returns an array of fields in the order expected by the sql above.  Removes the need for 
+    # batching logic and simplifies things quite a bit.
+    $total_saved += $sth->execute_array(
         {
-            $batch_counter++;
-            $insert_queue = 0;
+           ArrayTupleFetch => sub {
+               my $flow_rec = shift(@$flows);
+
+               return undef if ( !defined($flow_rec) );
+
+               return [
+                        $flow_rec->{fl_time},  $flow_rec->{src_ip}, $flow_rec->{dst_ip},  $flow_rec->{src_port},
+                        $flow_rec->{dst_port}, $flow_rec->{bytes},  $flow_rec->{packets}, $flow_rec->{protocol}
+               ];
+             }
         }
-    }
+    );
 
-    #
-    # Write batches of data at a time.  Tuned by $batch_size above
-    #
-    foreach my $batch (@$insert_struct)
-    {
-        my @tuple_status;
-        my $rows_saved =
-          $sth->execute_array(
-                               { ArrayTupleStatus => \@tuple_status },
-                               $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip},  $batch->{src_port},
-                               $batch->{dst_port}, $batch->{bytes},  $batch->{packets}, $batch->{protocol}
-          )
-          or $logger->logconfess(
-                              print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
-
-        $total_saved += $rows_saved;
-    }
-
-    $logger->debug("Saved: $total_saved");
+    $logger->debug( "Flows Saved: $total_saved of " . $total_flows );
     return 1;
 }
 
@@ -537,7 +518,7 @@ sub _initDB
         }
         else
         {
-            $logger->logconfess( "_initDB failed: $dbfile");
+            $logger->logconfess("_initDB failed: $dbfile");
         }
     }
 }
