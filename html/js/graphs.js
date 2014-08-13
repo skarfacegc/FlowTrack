@@ -41,7 +41,7 @@ function onGraphDataReceived(series)
 function getMainGraphData()
 {
     $.ajax({
-        url:"/json/GraphTotalsForLast/180/2",
+        url:"/json/GraphTotalsForLast/360/2",
         method: 'GET',
         dataType: 'json',
         success: onGraphDataReceived
