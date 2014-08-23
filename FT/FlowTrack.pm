@@ -63,11 +63,12 @@ sub new
 sub storeFlow
 {
     my ( $self, $flows ) = @_;
-    my $logger        = get_logger();
-    my $total_saved   = 0;
-    my $total_flows   = 0;
+    my $logger      = get_logger();
+    my $total_saved = 0;
+    my $total_flows = 0;
 
     my $dbh = $self->_initDB();
+
 
     my $sql = qq {
       INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets, protocol ) 
@@ -77,10 +78,10 @@ sub storeFlow
     my $sth = $dbh->prepare($sql)
       or $logger->logconfess( "Couldn't preapre SQL: " . $dbh->errstr() );
 
-    $total_flows = scalar( @{$flows} );
+    $total_flows = scalar( @{$flows} ) if(defined($flows));
 
     # ArrayTupleFetch is called repeatedly until it returns undef.  Shifts off flow records from flows
-    # and returns an array of fields in the order expected by the sql above.  Removes the need for 
+    # and returns an array of fields in the order expected by the sql above.  Removes the need for
     # batching logic and simplifies things quite a bit.
     $total_saved += $sth->execute_array(
         {
@@ -358,7 +359,7 @@ sub getSumBucketsForTimeRange
 
     # List of fields we want in the final hash
     my $field_list = [
-                       'internal_flows',   'internal_bytes', 'total_packets',  'total_bytes',
+                       'internal_flows',   'internal_bytes', 'totaackets',     'total_bytes',
                        'total_flows',      'egress_bytes',   'egress_flows',   'ingress_flows',
                        'internal_packets', 'ingress_bytes',  'egress_packets', 'ingress_packets'
     ];
@@ -377,53 +378,9 @@ sub getSumBucketsForTimeRange
     my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time );
     my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time );
 
-    # Update internal flow counters
-    foreach my $flow (@$internal_flows)
-    {
-        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
-
-        $buckets_by_time->{$bucket}{internal_flows}++;
-        $buckets_by_time->{$bucket}{internal_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{internal_packets} += $flow->{packets};
-
-        # Update the global counters
-        $buckets_by_time->{$bucket}{total_flows}++;
-        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
-
-    }
-
-    # update ingress flow counters
-    foreach my $flow (@$ingress_flows)
-    {
-        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
-
-        $buckets_by_time->{$bucket}{ingress_flows}++;
-        $buckets_by_time->{$bucket}{ingress_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{ingress_packets} += $flow->{packets};
-
-        # Update the global counters
-        $buckets_by_time->{$bucket}{total_flows}++;
-        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
-
-    }
-
-    # update egress flow counters
-    foreach my $flow (@$egress_flows)
-    {
-        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
-
-        $buckets_by_time->{$bucket}{egress_flows}++;
-        $buckets_by_time->{$bucket}{egress_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{egress_packets} += $flow->{packets};
-
-        # Update the global counters
-        $buckets_by_time->{$bucket}{total_flows}++;
-        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
-
-    }
+    $buckets_by_time = _buildBuckets( $internal_flows, $bucket_size, $buckets_by_time, "internal" );
+    $buckets_by_time = _buildBuckets( $ingress_flows,  $bucket_size, $buckets_by_time, "ingress" );
+    $buckets_by_time = _buildBuckets( $egress_flows,   $bucket_size, $buckets_by_time, "egress" );
 
     # build our return list
     foreach my $bucket_record ( sort { $a <=> $b } keys %$buckets_by_time )
@@ -644,6 +601,58 @@ sub _calcBucketTime
     my ( $time, $bucket_size ) = @_;
 
     return int( $time - ( int($time) % $bucket_size ) );
+}
+
+#
+# Add flows from $flow to $sum_struct
+# summarizing flows into $bucket_size buckets
+# prefix the hash key names with $name
+#
+#
+# This lets us build a single datastructure with aligned
+# buckets that contains multiple types of data (ingress/egress/etc)
+#
+# If $name isn't passed just use flows/bytes/packets
+#
+#
+# Not the most elegant code in the world, but I wanted
+# to extract this from the sumBucket functions, while
+# it wasn't totally cut/paste code, it felt redundant.
+#
+sub _buildBuckets
+{
+    my ( $flows, $bucket_size, $sum_struct, $name ) = @_;
+    my $logger = get_logger();
+    my $ret_struct;
+
+    if ( !defined($sum_struct) )
+    {
+        $logger->logconfess("sum_struct undefined in _buildBuckets");
+    }
+
+    if ( !defined($bucket_size) || $bucket_size <= 0 )
+    {
+        $logger->logconfess("Invalid bucket_size in _buildBuckets");
+    }
+
+    # append _ to the name if not already there
+    $name = $name . "_" if ( $name !~ /_$/ );
+
+    foreach my $flow (@$flows)
+    {
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
+
+        $sum_struct->{$bucket}{ $name . "flows" }++;
+        $sum_struct->{$bucket}{ $name . "bytes" }   += $flow->{bytes};
+        $sum_struct->{$bucket}{ $name . "packets" } += $flow->{packets};
+
+        # Update the global counters
+        $sum_struct->{$bucket}{total_flows}++;
+        $sum_struct->{$bucket}{total_bytes}   += $flow->{bytes};
+        $sum_struct->{$bucket}{total_packets} += $flow->{packets};
+    }
+
+    return $sum_struct;
 }
 
 #
