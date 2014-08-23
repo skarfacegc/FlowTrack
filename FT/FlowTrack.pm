@@ -306,6 +306,46 @@ sub getEgressFlowsInTimeRange
 }
 
 #
+# Returns a list of flows between the specified addresses
+#
+sub getTalkerFlowsInTimeRange
+{
+    my $self = shift();
+    my ( $src_ip, $dst_ip, $start_time, $end_time ) = @_;
+    my $dbh = $self->_initDB();
+    my $logger = get_logger();
+    my $ret_list;
+
+    my $src_ip_obj = FT::IP::getIPObj($src_ip);
+    my $dst_ip_obj = FT::IP::getIPObj($dst_ip);
+
+    my $sql = qq{
+        SELECT * FROM raw_flow WHERE
+        fl_time >= ? AND fl_time <= ?
+        AND
+        src_ip = ? 
+        AND
+        dst_ip = ?
+        ORDER BY fl_time
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->logconfess('failed to prepare:' . $DBI::errstr);
+
+    $sth->execute($start_time, $end_time, $src_ip_obj->intip(), $dst_ip_obj->intip())
+        or $logger->logconfess("failed executing $sql:" . $DBI::errstr);
+
+
+    while ( my $flow_ref = $sth->fetchrow_hashref )
+    {
+        push @$ret_list, $flow_ref;
+    }
+
+    return $ret_list;
+
+
+}
+
+#
 # Get bucketed flows
 #
 # Takes: Bucket size in mintues, how may minutes ago to search
@@ -604,6 +644,8 @@ sub _calcBucketTime
 }
 
 #
+# Helper for the getSumBucket routines
+#
 # Add flows from $flow to $sum_struct
 # summarizing flows into $bucket_size buckets
 # prefix the hash key names with $name
@@ -614,10 +656,9 @@ sub _calcBucketTime
 #
 # If $name isn't passed just use flows/bytes/packets
 #
+# I'm not a huge fan of using variable hashref names like this.
+# I didn't hate it enough to refactor the entire chain.
 #
-# Not the most elegant code in the world, but I wanted
-# to extract this from the sumBucket functions, while
-# it wasn't totally cut/paste code, it felt redundant.
 #
 sub _buildBuckets
 {

@@ -166,6 +166,20 @@ sub dbRawQueryTests
         "compare single record and default time sort"
     );
 
+    my $talker_pairs = $db_creat->getTalkerFlowsInTimeRange('10.1.0.2', '10.0.0.9', 0, time);
+    ok(
+        $talker_pairs->[0]{src_ip}        eq "167837698"
+          && $talker_pairs->[0]{dst_ip}   eq "167772169"
+          && $talker_pairs->[0]{src_port} eq "1024"
+          && $talker_pairs->[0]{dst_port} eq "80"
+          && $talker_pairs->[0]{bytes}    eq "8192"
+          && $talker_pairs->[0]{packets}  eq "255"
+          && $talker_pairs->[0]{protocol} eq "7",
+        ,
+        "getTalkerFlowsInTimeRange"
+    );
+
+
     #
     # Add a single record at the beginning of time so we have some way
     # to make sure the purge isn't overly agressive
@@ -176,7 +190,13 @@ sub dbRawQueryTests
     # now test purging
     ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
 
-    $TEST_COUNT += 8;
+
+
+
+
+
+
+    $TEST_COUNT += 9;
 
 }
 
