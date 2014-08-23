@@ -1,10 +1,18 @@
 #!/bin/sh
 
 if [ -e ~/perl5/perlbrew/etc/bashrc ]
-then
+    then
     source ~/perl5/perlbrew/etc/bashrc
 fi
 
-cover --delete 
-PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove --verbose
-cover
+if [ -z "$JENKINS_HOME" ]; then
+    echo LOCAL
+    cover --delete 
+    PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove -r --timer
+    cover
+else
+    echo JENKINS
+    cover --delete 
+    PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove -r --timer --formatter=TAP::Formatter::JUnit > test_results.xml
+    cover
+fi

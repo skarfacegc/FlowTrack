@@ -11,3 +11,4 @@ Data/
 .perlcriticrc
 cover_db/*
 TEST_FT*
+test_results.xml
