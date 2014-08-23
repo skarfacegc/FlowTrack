@@ -8,7 +8,7 @@ fi
 if [ -z "$JENKINS_HOME" ]; then
     echo LOCAL
     cover --delete 
-    PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove -r --timer
+    PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove --verbose --timer
     cover
 else
     echo JENKINS
