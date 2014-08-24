@@ -209,9 +209,12 @@ sub dbRawQueryTests
     };
 
     $db_creat->storeFlow( [ $egress_pair, $ingress_pair ] );
-    my $ingress_talker = $db_creat->getIngressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
 
+    my $ingress_talker = $db_creat->getIngressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
     ok( $ingress_talker->[0]{packets} == 222, "getIngressTalkeFlowsInTimeRange - pair test" );
+
+    my $egress_talker = $db_creat->getEgressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
+    ok( $egress_talker->[0]{packets} == 111, "getEgressTalkeFlowsInTimeRange - pair test" );
 
     #
     # Test Purge
@@ -226,7 +229,7 @@ sub dbRawQueryTests
     # now test purging
     ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
 
-    $TEST_COUNT += 9;
+    $TEST_COUNT += 11;
 
 }
 
