@@ -10,9 +10,11 @@ if [ -z "$JENKINS_HOME" ]; then
     cover --delete 
     PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove --verbose --timer
     cover
+    cover --launch
 else
     echo JENKINS
     cover --delete 
     PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove -r --timer --formatter=TAP::Formatter::JUnit > test_results.xml
-    cover
+    cover -report html
+    cover -report clover
 fi
