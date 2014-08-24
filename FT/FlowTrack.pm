@@ -69,7 +69,6 @@ sub storeFlow
 
     my $dbh = $self->_initDB();
 
-
     my $sql = qq {
       INSERT INTO raw_flow ( fl_time, src_ip, dst_ip, src_port, dst_port, bytes, packets, protocol ) 
       VALUES (?,?,?,?,?,?,?,?);
@@ -78,7 +77,7 @@ sub storeFlow
     my $sth = $dbh->prepare($sql)
       or $logger->logconfess( "Couldn't preapre SQL: " . $dbh->errstr() );
 
-    $total_flows = scalar( @{$flows} ) if(defined($flows));
+    $total_flows = scalar( @{$flows} ) if ( defined($flows) );
 
     # ArrayTupleFetch is called repeatedly until it returns undef.  Shifts off flow records from flows
     # and returns an array of fields in the order expected by the sql above.  Removes the need for
@@ -312,7 +311,7 @@ sub getTalkerFlowsInTimeRange
 {
     my $self = shift();
     my ( $src_ip, $dst_ip, $start_time, $end_time ) = @_;
-    my $dbh = $self->_initDB();
+    my $dbh    = $self->_initDB();
     my $logger = get_logger();
     my $ret_list;
 
@@ -329,11 +328,10 @@ sub getTalkerFlowsInTimeRange
         ORDER BY fl_time
     };
 
-    my $sth = $dbh->prepare($sql) or $logger->logconfess('failed to prepare:' . $DBI::errstr);
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
 
-    $sth->execute($start_time, $end_time, $src_ip_obj->intip(), $dst_ip_obj->intip())
-        or $logger->logconfess("failed executing $sql:" . $DBI::errstr);
-
+    $sth->execute( $start_time, $end_time, $src_ip_obj->intip(), $dst_ip_obj->intip() )
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
 
     while ( my $flow_ref = $sth->fetchrow_hashref )
     {

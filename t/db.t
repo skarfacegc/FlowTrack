@@ -58,7 +58,7 @@ sub customObjects
 
     # Custom Values
     my $ft_custom = FT::FlowTrack->new( "./blah", "192.168.1.1/24" );
-    ok( $ft_custom->{location}         eq "./blah",         "custom location" );
+    ok( $ft_custom->{location} eq "./blah",                 "custom location" );
     ok( $ft_custom->{internal_network} eq "192.168.1.1/24", "custom network" );
     unlink("./blah/FlowTrack.sqlite");
     rmdir("./blah");
@@ -72,7 +72,7 @@ sub defaultObjectTests
 {
     # Default Values
     my $ft_default = FT::FlowTrack->new();
-    ok( $ft_default->{location}         eq "Data",           "default location" );
+    ok( $ft_default->{location} eq "Data",                   "default location" );
     ok( $ft_default->{internal_network} eq "192.168.1.0/24", "default network" );
 
     # make sure we get back a well known table name
@@ -155,30 +155,28 @@ sub dbRawQueryTests
     # Verify Fields are correct from the DB
     my $sample = $db_creat->getFlowsInTimeRange( 0, time );
     ok(
-        $sample->[0]{src_ip}        eq "167837698"
-          && $sample->[0]{dst_ip}   eq "167772169"
+        $sample->[0]{src_ip} eq "167837698"
+          && $sample->[0]{dst_ip} eq "167772169"
           && $sample->[0]{src_port} eq "1024"
           && $sample->[0]{dst_port} eq "80"
-          && $sample->[0]{bytes}    eq "8192"
-          && $sample->[0]{packets}  eq "255"
+          && $sample->[0]{bytes} eq "8192"
+          && $sample->[0]{packets} eq "255"
           && $sample->[0]{protocol} eq "7",
-        ,
         "compare single record and default time sort"
     );
 
-    my $talker_pairs = $db_creat->getTalkerFlowsInTimeRange('10.1.0.2', '10.0.0.9', 0, time);
+    # Load up a single talker pair.  Using the same src/dst as abve for the query.
+    my $talker_pairs = $db_creat->getTalkerFlowsInTimeRange( '10.1.0.2', '10.0.0.9', 0, time );
     ok(
-        $talker_pairs->[0]{src_ip}        eq "167837698"
-          && $talker_pairs->[0]{dst_ip}   eq "167772169"
+        $talker_pairs->[0]{src_ip} eq "167837698"
+          && $talker_pairs->[0]{dst_ip} eq "167772169"
           && $talker_pairs->[0]{src_port} eq "1024"
           && $talker_pairs->[0]{dst_port} eq "80"
-          && $talker_pairs->[0]{bytes}    eq "8192"
-          && $talker_pairs->[0]{packets}  eq "255"
+          && $talker_pairs->[0]{bytes} eq "8192"
+          && $talker_pairs->[0]{packets} eq "255"
           && $talker_pairs->[0]{protocol} eq "7",
-        ,
         "getTalkerFlowsInTimeRange"
     );
-
 
     #
     # Add a single record at the beginning of time so we have some way
@@ -189,12 +187,6 @@ sub dbRawQueryTests
 
     # now test purging
     ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
-
-
-
-
-
-
 
     $TEST_COUNT += 9;
 
