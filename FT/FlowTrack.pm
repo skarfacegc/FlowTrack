@@ -98,6 +98,7 @@ sub storeFlow
     );
 
     $logger->debug( "Flows Saved: $total_saved of " . $total_flows );
+
     return 1;
 }
 
@@ -343,6 +344,52 @@ sub getTalkerFlowsInTimeRange
 
     return $ret_list;
 
+}
+
+# Returns the ingress flows given a pair of IPs
+#
+# This will figure out which ip is internal or external and
+# call getTalkerFlowsInTimeRange
+#
+sub getIngressTalkerFlowsInTimeRange
+{
+    my $self = shift();
+    my ( $ip_a, $ip_b, $start_time, $end_time ) = @_;
+    my $logger = get_logger();
+    my $src_ip;
+    my $dst_ip;
+    my $ret_struct;
+
+    my $ip_a_obj = FT::IP::getIPObj($ip_a);
+    my $ip_b_obj = FT::IP::getIPObj($ip_b);
+
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    # If $ip_a is internal and ip_b is external
+    # ingress is b as src a as dst
+    if ( FT::IP::IPOverlap( $self->{internal_network}, $ip_a )
+         && !FT::IP::IPOverlap( $self->{internal_network}, $ip_b ) )
+    {
+        $src_ip = $ip_b_obj->intip();
+        $dst_ip = $ip_a_obj->intip();
+    }
+
+    # If $ip_b is internal and $ip_a is external
+    # $ip_a is src and $ip_b is dst
+    elsif ( FT::IP::IPOverlap( $self->{internal_network}, $ip_b )
+            && !FT::IP::IPOverlap( $self->{internal_network}, $ip_b ) )
+    {
+        $src_ip = $ip_a_obj->intip();
+        $dst_ip = $ip_b_obj->intip();
+    }
+
+    # at this point we're either all external or all internal, so no ingress
+    else
+    {
+        return [];
+    }
+
+    return $self->getTalkerFlowsInTimeRange( $src_ip, $dst_ip, $start_time, $end_time );
 }
 
 #

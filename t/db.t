@@ -179,6 +179,44 @@ sub dbRawQueryTests
     );
 
     #
+    # Test talker ingress
+    #
+
+    # set packets to 111 so we know if we got the right one
+    my $egress_pair = {
+                        'protocol' => 7,
+                        'bytes'    => 222,
+                        'src_port' => 1024,
+                        'flow_id'  => 107,
+                        'packets'  => 111,
+                        'dst_port' => 80,
+                        'src_ip'   => 167772161,
+                        'dst_ip'   => 3232235777,
+                        'fl_time'  => 1408856362
+    };
+
+    # set packets to 222 so we know we got the right one in the test
+    my $ingress_pair = {
+                         'protocol' => 7,
+                         'bytes'    => 222,
+                         'src_port' => 1024,
+                         'flow_id'  => 107,
+                         'packets'  => 222,
+                         'dst_port' => 80,
+                         'src_ip'   => 3232235777,
+                         'dst_ip'   => 167772161,
+                         'fl_time'  => 1408856362
+    };
+
+    $db_creat->storeFlow( [ $egress_pair, $ingress_pair ] );
+    my $ingress_talker = $db_creat->getIngressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
+
+    ok( $ingress_talker->[0]{packets} == 222, "getIngressTalkeFlowsInTimeRange - pair test" );
+
+    #
+    # Test Purge
+    #
+
     # Add a single record at the beginning of time so we have some way
     # to make sure the purge isn't overly agressive
     # use the sample record from above, set it's time to 0 and store away.
