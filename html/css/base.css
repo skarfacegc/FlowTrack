@@ -56,7 +56,8 @@ body {
 }
 
 .external_ip_name {
-    float:right;
+    /*float:right;*/
+    margin-top:-14px;
     text-align: right;
     margin-left: 5em;
     margin-right: 2px;
