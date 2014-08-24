@@ -182,6 +182,7 @@ sub getIngressFlowsInTimeRange
         src_ip NOT BETWEEN ? AND ?
         AND
         dst_ip BETWEEN ? AND ?
+        ORDER BY fl_time
     };
 
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
@@ -233,6 +234,7 @@ sub getInternalFlowsInTimeRange
         src_ip BETWEEN ? AND ?
         AND
         dst_ip BETWEEN ? AND ?
+        ORDER BY fl_time
     };
 
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
@@ -285,6 +287,7 @@ sub getEgressFlowsInTimeRange
         src_ip BETWEEN ? AND ?
         AND
         dst_ip NOT BETWEEN ? AND ?
+        ORDER BY fl_time
     };
 
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
@@ -339,7 +342,6 @@ sub getTalkerFlowsInTimeRange
     }
 
     return $ret_list;
-
 
 }
 
