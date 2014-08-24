@@ -39,6 +39,9 @@ sub IPOverlap
     my $network_obj = getIPObj($network);
     my $ip_obj      = getIPObj($ip);
 
+    # Identical address sure do overlap
+    return 1 if ( $network_obj->overlaps($ip_obj) == $IP_IDENTICAL );
+
     return $network_obj->overlaps($ip_obj) == $IP_B_IN_A_OVERLAP;
 }
 
