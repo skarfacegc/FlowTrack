@@ -15,5 +15,14 @@ Main graph call stack:
 
 ~~need to refactor the 3 foreach loops in getSumBuckets~~ DONE  Different approach than above, but the goal was met.  :)
 
-~~Simplify flow storage by siwtching to ArrayTupleFetch
-http://atrueswordsman.wordpress.com/2009/07/10/perl-dbi-batch-uploadinsert-row-wise-vs-column-wise-binding/~~ DONE
+~~Simplify flow storage by siwtching to ArrayTupleFetch~~
+http://atrueswordsman.wordpress.com/2009/07/10/perl-dbi-batch-uploadinsert-row-wise-vs-column-wise-binding/ ~~ 
+DONE
+
+
+TODO
+-----
+- Sepearte 3rd party css/js
+- Fix awkward package naming
+- Fix awkward logging config (build into main obj perhaps?)
+- Is the schema stuff really needed?
