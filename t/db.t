@@ -6,20 +6,14 @@ use Log::Log4perl qw(get_logger);
 use autodie;
 use File::Temp;
 
-use Test::More;
+use Test::More tests => 29;
 use Data::Dumper;
 use FT::Schema;
 use Log::Log4perl;
 
-use vars qw($TEST_COUNT );
-
-# Holds test count
-my $TEST_COUNT;
-
 BEGIN
 {
     use_ok('FT::FlowTrack');
-    $TEST_COUNT += 1;
 }
 
 test_main();
@@ -39,9 +33,6 @@ sub test_main
     dbCreation();
     dbRawQueryTests();
     dbByteBucketQueryTests();
-    done_testing($TEST_COUNT);
-
-    return;
 }
 
 #
@@ -63,9 +54,6 @@ sub customObjects
     unlink("./blah/FlowTrack.sqlite");
     rmdir("./blah");
 
-    $TEST_COUNT += 2;
-
-    return;
 }
 
 sub defaultObjectTests
@@ -86,9 +74,6 @@ sub defaultObjectTests
     my $create_sql = $ft_default->get_create_sql("raw_flow");
     ok( $create_sql ~~ /CREATE.*fl_time.*/, "Create statement generation" );
 
-    $TEST_COUNT += 5;
-
-    return;
 }
 
 #
@@ -123,11 +108,6 @@ sub dbCreation
     my @table_list = $dbh->tables();
     ok( grep( {/raw_flow/} @table_list ), "raw_flow created" );
 
-    # Make sure we get back the number of buckets we were expecting  (should be 1000)
-
-    $TEST_COUNT += 6;
-
-    return;
 }
 
 #
@@ -210,11 +190,17 @@ sub dbRawQueryTests
 
     $db_creat->storeFlow( [ $egress_pair, $ingress_pair ] );
 
-    my $ingress_talker = $db_creat->getIngressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
-    ok( $ingress_talker->[0]{packets} == 222, "getIngressTalkeFlowsInTimeRange - pair test" );
+    my $ingress_talker_quad = $db_creat->getIngressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
+    ok( $ingress_talker_quad->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test quad" );
 
-    my $egress_talker = $db_creat->getEgressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
-    ok( $egress_talker->[0]{packets} == 111, "getEgressTalkeFlowsInTimeRange - pair test" );
+    # my $ingress_talker_int = $db_creat->getIngressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
+    # ok( $ingress_talker_int->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test int" );
+
+    my $egress_talker_quad = $db_creat->getEgressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
+    ok( $egress_talker_quad->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test quad" );
+
+    # my $egress_talker_int = $db_creat->getEgressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
+    # ok( $egress_talker_int->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test int" );
 
     #
     # Test Purge
@@ -260,14 +246,11 @@ sub dbByteBucketQueryTests
           && $tmp_flows->[1]{total_packets} == 2304,
         "Packet Sum"
     );
-
     # Make sure that the relative call returns something. getting the time alignment correct
     # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
     # calls getSumBuckgetsForTimeRange underneath so I've already verified that the base call is
     # working correctly above.
     ok( scalar @{ $db_creat->getSumBucketsForLast( 300, 15 ) } > 0, "Buckets for last" );
-
-    $TEST_COUNT += 4;
 }
 
 #
@@ -395,10 +378,5 @@ sub getTmp
     #
     my $tmpspace = File::Temp->new();
     return File::Temp->newdir( 'TEST_FT_XXXXXX', CLEANUP => 1 );
-}
-
-END
-{
-    #cleanup
 }
 

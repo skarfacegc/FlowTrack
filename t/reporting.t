@@ -7,17 +7,13 @@ use autodie;
 use File::Temp;
 use File::Basename;
 
-use Test::More;
+use Test::More tests => 5;
 use Data::Dumper;
 use Log::Log4perl;
-
-# Holds test count
-my $TEST_COUNT;
 
 BEGIN
 {
     use_ok('FT::Reporting');
-    $TEST_COUNT++;
 }
 
 test_main();
@@ -33,7 +29,6 @@ sub test_main
     # Run the tests!
     object_tests();
     graphGrid_tests();
-    done_testing($TEST_COUNT);
 
     return;
 }
@@ -44,14 +39,12 @@ sub object_tests
 
     ok( ref($reporting) eq 'FT::Reporting', "Object Type" );
     ok( defined $reporting->{dbh},          "parent DB handle creation" );
-
-    $TEST_COUNT += 2;
 }
 
 sub graphGrid_tests
 {
 
-    SKIP:
+  SKIP:
     {
         local $TODO = "Need to update to reflect new reporting";
         my $reporting = FT::Reporting->new( { data_dir => scalar getTmp(), internal_network => '10.1.0.0/16' } );
@@ -66,21 +59,20 @@ sub graphGrid_tests
         my $total_flows = 0;
         foreach my $flow ( keys %$recent_flows )
         {
-            $total_flows += $recent_flows->{$flow}{ingress_flows};
+            $total_flows += $recent_flows->{$flow}{ingress_flows}
+                if ( defined( $recent_flows->{$flow}{ingress_flows} ) );
 
-            $total_flows += $recent_flows->{$flow}{egress_flows};
+            $total_flows += $recent_flows->{$flow}{egress_flows}
+                if ( defined( $recent_flows->{$flow}{egress_flows} ) );
         }
 
         # TODO: Improve this
         ok( ( $total_flows == 105 ), 'Recent flows count' );
 
         # TODO: Improve these
-        ok( $reporting->updateRecentTalkers(),  'UpdateRecentTalkers' );
-    
+        ok( $reporting->updateRecentTalkers(), 'UpdateRecentTalkers' );
 
     }
-
-    $TEST_COUNT += 2;
 }
 
 sub report_tests
@@ -88,8 +80,6 @@ sub report_tests
     my $reporting = FT::Reporting->new( { data_dir => scalar getTmp(), internal_network => '10.1.0.0/16' } );
 
     ok( $reporting->runReports(), "Run Reports" );
-
-    $TEST_COUNT += 1;
 }
 
 #
