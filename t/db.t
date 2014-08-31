@@ -227,9 +227,7 @@ sub dbRawQueryTests
     $db_creat->storeFlow( [ $sample->[0] ] );
 
     # now test purging
-    ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
-
-    $TEST_COUNT += 11;
+    ok( $db_creat->purgeData( time - 86400 ) == 3, "purge data" );
 
 }
 
