@@ -6,15 +6,7 @@ if [ -e ~/perl5/perlbrew/etc/bashrc ]
 fi
 
 if [ -z "$JENKINS_HOME" ]; then
-    echo LOCAL
-    cover --delete 
-    PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove --verbose --timer
-    cover
-    cover --launch
+    make cover
 else
-    echo JENKINS
-    cover --delete 
-    PERL5OPT=-MDevel::Cover=-coverage,statement,branch,subroutine,time,+ignore,".*prove.*","\.t" prove -r --timer --formatter=TAP::Formatter::JUnit > test_results.xml
-    cover -report html
-    cover -report clover
+    make jenkins
 fi
