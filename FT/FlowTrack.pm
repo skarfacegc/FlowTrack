@@ -377,7 +377,7 @@ sub getIngressTalkerFlowsInTimeRange
     # If $ip_b is internal and $ip_a is external
     # $ip_a is src and $ip_b is dst
     elsif ( FT::IP::IPOverlap( $self->{internal_network}, $ip_b )
-            && !FT::IP::IPOverlap( $self->{internal_network}, $ip_b ) )
+            && !FT::IP::IPOverlap( $self->{internal_network}, $ip_a ) )
     {
         $src_ip = $ip_a_obj->intip();
         $dst_ip = $ip_b_obj->intip();
@@ -424,7 +424,7 @@ sub getEgressTalkerFlowsInTimeRange
     # If $ip_b is internal and $ip_a is external
     # egress is b as src a as dst
     elsif ( FT::IP::IPOverlap( $self->{internal_network}, $ip_b )
-            && !FT::IP::IPOverlap( $self->{internal_network}, $ip_b ) )
+            && !FT::IP::IPOverlap( $self->{internal_network}, $ip_a ) )
     {
         $src_ip = $ip_b_obj->intip();
         $dst_ip = $ip_a_obj->intip();

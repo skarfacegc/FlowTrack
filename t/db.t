@@ -6,7 +6,7 @@ use Log::Log4perl qw(get_logger);
 use autodie;
 use File::Temp;
 
-use Test::More tests => 29;
+use Test::More tests => 35;
 use Data::Dumper;
 use FT::Schema;
 use Log::Log4perl;
@@ -190,17 +190,35 @@ sub dbRawQueryTests
 
     $db_creat->storeFlow( [ $egress_pair, $ingress_pair ] );
 
+    # Ingress
     my $ingress_talker_quad = $db_creat->getIngressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
-    ok( $ingress_talker_quad->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test quad" );
+    ok( $ingress_talker_quad->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test dotted quad fwd" );
 
-    # my $ingress_talker_int = $db_creat->getIngressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
-    # ok( $ingress_talker_int->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test int" );
+    # Now reverse the pairs
+    $ingress_talker_quad = $db_creat->getIngressTalkerFlowsInTimeRange( '192.168.1.1', '10.0.0.1', 0, time );
+    ok( $ingress_talker_quad->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test dotted quad reverse" );
 
+    my $ingress_talker_int = $db_creat->getIngressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
+    ok( $ingress_talker_int->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test ip as int fwd" );
+
+    # Reverse the pair
+    $ingress_talker_int = $db_creat->getIngressTalkerFlowsInTimeRange( 167772161, 3232235777, 0, time );
+    ok( $ingress_talker_int->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test ip as int reverse" );
+
+    # Egress
     my $egress_talker_quad = $db_creat->getEgressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
-    ok( $egress_talker_quad->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test quad" );
+    ok( $egress_talker_quad->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test dotted quad fwd" );
 
-    # my $egress_talker_int = $db_creat->getEgressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
-    # ok( $egress_talker_int->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test int" );
+    # reverse the pair
+    $egress_talker_quad = $db_creat->getEgressTalkerFlowsInTimeRange( '192.168.1.1', '10.0.0.1', 0, time );
+    ok( $egress_talker_quad->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test dotted quad reverse" );
+
+    my $egress_talker_int = $db_creat->getEgressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
+    ok( $egress_talker_int->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test ip as int fwd" );
+
+    # reverse the pair
+    $egress_talker_int = $db_creat->getEgressTalkerFlowsInTimeRange( 167772161, 3232235777, 0, time );
+    ok( $egress_talker_int->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test ip as int reverse" );
 
     #
     # Test Purge
@@ -246,6 +264,7 @@ sub dbByteBucketQueryTests
           && $tmp_flows->[1]{total_packets} == 2304,
         "Packet Sum"
     );
+
     # Make sure that the relative call returns something. getting the time alignment correct
     # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
     # calls getSumBuckgetsForTimeRange underneath so I've already verified that the base call is
