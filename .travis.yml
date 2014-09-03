@@ -19,4 +19,6 @@ before_install:
     - "cpanm Net::DNS"
     - "cpanm Devel::Cover"
 
+install: true
+
 script: "./runTests"
