@@ -1,13 +1,5 @@
-**Current work is happening on feature/graphing**
+**Current work is happening on feature/gridGraph**
 
-
-Sample Graph View (in the feature/graphing branch currently)
-
-![Graph](http://flowtrack.info/images/TalkerGrid2.png)
-
-Sample view of raw flows
-
-![TableView](http://pictures.baltdad.com/ExternalPictures/FlowTracktableView.png)
 
 
 About
