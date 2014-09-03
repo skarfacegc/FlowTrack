@@ -1,3 +1,6 @@
+**Current work is happening on feature/gridGraph**
+
+Sample Graph View (in the feature/graphing branch currently)
 About
 -----
 FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
@@ -33,6 +36,7 @@ Installation & Use
     - Net::IP
     - DateTime
     - DateTime::Timezone (likely installed by the above)
+    - Devel::Cover (for coverage reports)
     - Net::DNS
     
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
