@@ -15,7 +15,7 @@ before_install:
     - "cpanm Net::Flow"
     - "cpanm Net::IP"
     - "cpanm DateTime"
-    - "cpanm DateTime::Timezone"
+    - "cpanm DateTime::TimeZone"
     - "cpanm Net::DNS"
     - "cpanm Devel::Cover"
 
