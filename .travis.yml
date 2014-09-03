@@ -1,0 +1,22 @@
+branches:
+    only:
+        - feature/gridGraph
+
+language: perl
+perl:
+    - "5.16"
+before_install:
+    - "cpanm Mojolicious"
+    - "cpanm Net::Server"
+    - "cpanm Log::Log4perl"
+    - "cpanm YAML"
+    - "cpanm DBI"
+    - "cpanm DBD::SQLite"
+    - "cpanm Net::Flow"
+    - "cpanm Net::IP"
+    - "cpanm DateTime"
+    - "cpanm DateTime::Timezone"
+    - "cpanm Net::DNS"
+    - "cpanm Devel::Cover"
+
+script: "./runTests"
