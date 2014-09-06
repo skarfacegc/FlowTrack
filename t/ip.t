@@ -5,12 +5,16 @@ use warnings;
 
 use Test::More tests => 13;
 use Data::Dumper;
+use Memoize;
 
 
 BEGIN
 {
     use_ok('FT::IP');
 }
+
+Memoize::unmemoize("FT::IP::getIPObj");
+Memoize::unmemoize("FT::IP::IPOverlap");
 
 # getIPObj Tests
 my $quad_test = FT::IP::getIPObj('10.1.1.1');
