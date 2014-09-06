@@ -526,6 +526,61 @@ sub getSumBucketsForTimeRange
 }
 
 #
+# Returns an array of summed flow buckets from start_time to end_time using bucketsize minute
+# sized aggregatio buckets.
+#
+#  {
+#   'internal_flows' => 55,
+#   'internal_bytes' => 30570,
+#   'total_packets' => 783,
+#   'total_bytes' => 93701,
+#   'total_flows' => 156,
+#   'egress_bytes' => 34452,
+#   'egress_flows' => 64,
+#   'ingress_flows' => 37,
+#   'internal_packets' => 180,
+#   'ingress_bytes' => 28679,
+#   'egress_packets' => 360,
+#   'bucket_time' => '1356273960',
+#   'ingress_packets' => 243
+# },
+sub getSumBucketsForTalkerPair
+{
+    my $self = shift();
+    my ( $ip_a, $ip_b, $bucket_size, $start_time, $end_time ) = @_;
+
+    my $ret_list;
+    my $buckets_by_time;
+    my $ingress_flows;
+    my $egress_flows;
+    my $logger = get_logger();
+
+    # List of fields we want in the final hash
+    my $field_list = [
+                       'total_packets', 'total_bytes',   'total_flows',   'egress_bytes',
+                       'egress_flows',  'ingress_flows', 'ingress_bytes', 'egress_packets',
+                       'ingress_packets'
+    ];
+
+    $buckets_by_time = _buildTimeBucketHash( $bucket_size, $start_time, $end_time, $field_list );
+
+    $ingress_flows = $self->getIngressTalkerFlowsInTimeRange( $ip_a, $ip_b, $start_time, $end_time );
+    $egress_flows = $self->getEgressTalkerFlowsInTimeRange( $ip_a, $ip_b, $start_time, $end_time );
+
+    $buckets_by_time = _buildBuckets( $ingress_flows, $bucket_size, $buckets_by_time, "ingress" );
+    $buckets_by_time = _buildBuckets( $egress_flows,  $bucket_size, $buckets_by_time, "egress" );
+
+    # build our return list
+    foreach my $bucket_record ( sort { $a <=> $b } keys %$buckets_by_time )
+    {
+        push @$ret_list, $buckets_by_time->{$bucket_record};
+    }
+
+    return $ret_list;
+
+}
+
+#
 # Optionally takes a timestamp for the purge_interval
 #
 # returns # of rows purged.  -1 on error

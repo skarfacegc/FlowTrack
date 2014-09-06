@@ -6,7 +6,7 @@ use Log::Log4perl qw(get_logger);
 use autodie;
 use File::Temp;
 
-use Test::More tests => 35;
+use Test::More tests => 40;
 use Data::Dumper;
 use FT::Schema;
 use Log::Log4perl;
@@ -264,6 +264,48 @@ sub dbByteBucketQueryTests
           && $tmp_flows->[1]{total_packets} == 2304,
         "Packet Sum"
     );
+
+    # Now test building the bucketed list for our pair
+    my $talker_pair_buckets = $db_creat->getSumBucketsForTalkerPair( "10.1.0.1", "10.0.0.1", 300, time - 299702, time );
+    ok (scalar @{$talker_pair_buckets} == 1000, "Talker Pair Buckets in Time Range");
+
+    # Make sure the sums work, since we're working on the same data as the normal bucket tests
+    # the data should be the same.  We'll check to make sure we're not pulling bad pairs in the
+    # next test
+    ok(
+        $talker_pair_buckets->[1]{ingress_bytes} == 12288
+          && $talker_pair_buckets->[1]{egress_bytes} == 24576
+          && $talker_pair_buckets->[1]{total_bytes} == 36864,
+        "Talker Pair Byte Sum"
+    );
+
+    ok(
+        $talker_pair_buckets->[1]{ingress_packets} == 768
+          && $talker_pair_buckets->[1]{egress_packets} == 1536
+          && $talker_pair_buckets->[1]{total_packets} == 2304,
+        "Talker Pair Packet Sum"
+    );
+
+
+    # now ask for some pairs not in our data set, make sure we don't get values back
+    $talker_pair_buckets = $db_creat->getSumBucketsForTalkerPair( "10.1.0.1", "10.5.0.1", 300, time - 299702, time );
+    ok(
+        $talker_pair_buckets->[1]{ingress_bytes} == 0
+          && $talker_pair_buckets->[1]{egress_bytes} == 0
+          && $talker_pair_buckets->[1]{total_bytes} == 0,
+        "Talker Pair Byte Sum - no pairs in data"
+    );
+
+    ok(
+        $talker_pair_buckets->[1]{ingress_packets} == 0
+          && $talker_pair_buckets->[1]{egress_packets} == 0
+          && $talker_pair_buckets->[1]{total_packets} == 0,
+        "Talker Pair Packet Sum - no pairs in data"
+    );
+
+
+    
+
 
     # Make sure that the relative call returns something. getting the time alignment correct
     # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
