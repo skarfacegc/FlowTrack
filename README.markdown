@@ -38,9 +38,9 @@ Installation & Use
     - Net::Flow
     - Net::IP
     - DateTime
-    - DateTime::Timezone (likely installed by the above)
-    - Devel::Cover (for coverage reports)
     - Net::DNS
+    - Devel::Cover (for UT coverage)
+    - Test::Pretty (nicer output for prove)
     
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
