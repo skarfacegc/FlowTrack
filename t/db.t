@@ -6,7 +6,7 @@ use Log::Log4perl qw(get_logger);
 use autodie;
 use File::Temp;
 
-use Test::More tests => 40;
+use Test::More tests => 43;
 use Data::Dumper;
 use FT::Schema;
 use Log::Log4perl;
@@ -220,6 +220,13 @@ sub dbRawQueryTests
     $egress_talker_int = $db_creat->getEgressTalkerFlowsInTimeRange( 167772161, 3232235777, 0, time );
     ok( $egress_talker_int->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test ip as int reverse" );
 
+    # Try the *forLast routines
+    my $egress_for_last = $db_creat->getEgressTalkerFlowsForLast('10.0.0.1', '192.168.1.1', time);
+    ok( $egress_for_last->[0]{packets} == 111, "getEgressTalkerFlowsForLast");
+
+    my $ingress_for_last = $db_creat->getIngressTalkerFlowsForLast('10.0.0.1', '192.168.1.1', time);
+    ok( $ingress_for_last->[0]{packets} == 222, "getIngressTalkerFlowsForLast");
+
     #
     # Test Purge
     #
@@ -267,7 +274,7 @@ sub dbByteBucketQueryTests
 
     # Now test building the bucketed list for our pair
     my $talker_pair_buckets = $db_creat->getSumBucketsForTalkerPair( "10.1.0.1", "10.0.0.1", 300, time - 299702, time );
-    ok (scalar @{$talker_pair_buckets} == 1000, "Talker Pair Buckets in Time Range");
+    ok( scalar @{$talker_pair_buckets} == 1000, "Talker Pair Buckets in Time Range" );
 
     # Make sure the sums work, since we're working on the same data as the normal bucket tests
     # the data should be the same.  We'll check to make sure we're not pulling bad pairs in the
@@ -286,7 +293,6 @@ sub dbByteBucketQueryTests
         "Talker Pair Packet Sum"
     );
 
-
     # now ask for some pairs not in our data set, make sure we don't get values back
     $talker_pair_buckets = $db_creat->getSumBucketsForTalkerPair( "10.1.0.1", "10.5.0.1", 300, time - 299702, time );
     ok(
@@ -303,15 +309,13 @@ sub dbByteBucketQueryTests
         "Talker Pair Packet Sum - no pairs in data"
     );
 
-
-    
-
-
     # Make sure that the relative call returns something. getting the time alignment correct
     # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
     # calls getSumBuckgetsForTimeRange underneath so I've already verified that the base call is
     # working correctly above.
     ok( scalar @{ $db_creat->getSumBucketsForLast( 300, 15 ) } > 0, "Buckets for last" );
+    ok( scalar @{ $db_creat->getSumBucketsForTalkerPairForLast( "10.1.0.1", "10.0.0.1", 300, 15 ) } > 0,
+        "getSumBucketsForTalkerPairForLast" );
 }
 
 #
