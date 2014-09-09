@@ -47,21 +47,17 @@ body {
 }
 
 .internal_ip_name {
-    text-align:left;
-    margin-right: 5em;
-    margin-left: 2px;
+    float: left;
     font-size: x-small;
+    width: 50%;
     overflow: hidden;
     white-space: nowrap;
 }
 
 .external_ip_name {
-    /*float:right;*/
-    margin-top:-14px;
-    text-align: right;
-    margin-left: 5em;
-    margin-right: 2px;
+    float:right;
     font-size: x-small;
+    width: 50%;
     overflow: hidden;
     white-space: nowrap;
 }
