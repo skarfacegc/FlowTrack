@@ -62,6 +62,12 @@ body {
     white-space: nowrap;
 }
 
+.talker_graph {
+    width: 100%;
+    text-align: center;
+    border-top: 1px solid #e2eef4;
+}
+
 .tickLabel, .legendLabel {
     font-family: Verdana, Geneva, sans-serif;
     font-size: 70%;

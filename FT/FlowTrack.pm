@@ -349,7 +349,7 @@ sub getTalkerFlowsInTimeRange
 sub getIngressTalkerFlowsForLast
 {
     my $self = shift;
-    my ($ip_a, $ip_b, $duration) = @_;
+    my ( $ip_a, $ip_b, $duration ) = @_;
 
     return $self->getIngressTalkerFlowsInTimeRange( $ip_a, $ip_b, time - ( $duration * 60 ), time );
 
@@ -401,17 +401,14 @@ sub getIngressTalkerFlowsInTimeRange
     return $self->getTalkerFlowsInTimeRange( $src_ip, $dst_ip, $start_time, $end_time );
 }
 
-
 sub getEgressTalkerFlowsForLast
 {
     my $self = shift;
-    my ($ip_a, $ip_b, $duration) = @_;
+    my ( $ip_a, $ip_b, $duration ) = @_;
 
     return $self->getEgressTalkerFlowsInTimeRange( $ip_a, $ip_b, time - ( $duration * 60 ), time );
 
 }
-
-
 
 # Returns the egress flows given a pair of IPs
 #
@@ -554,7 +551,6 @@ sub getSumBucketsForTalkerPairForLast
     return $self->getSumBucketsForTalkerPair( $ip_a, $ip_b, $bucket_size * 60, time - ( $duration * 60 ), time );
 
 }
-
 
 #
 # Returns an array of summed flow buckets from start_time to end_time using bucketsize minute

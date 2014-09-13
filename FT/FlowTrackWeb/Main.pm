@@ -144,6 +144,27 @@ sub aggergateBucketJSON
 
 }
 
+# Returns the data for the per pair graphs
+sub aggregateBucketTalkersJSON
+{
+    my $self = shift();
+    my $logger = get_logger ();
+
+    my $minutes_back = $self->param('minutes');
+    my $bucketsize   = $self->param('bucketsize');
+    my $ip_a         = $self->param('ipa');
+    my $ip_b         = $self->param('ipb');
+
+    my $flow_buckets = $FT->getSumBucketsForTalkerPairForLast( $ip_a, $ip_b, $bucketsize, $minutes_back );
+
+    # $logger->debug(Dumper($flow_buckets));
+
+
+    $self->render( json => $flow_buckets );
+
+    return;
+}
+
 sub topTalkersJSON
 {
     my $self   = shift;
