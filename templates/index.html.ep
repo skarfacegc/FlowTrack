@@ -10,6 +10,7 @@
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"> </script>
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"> </script>
         <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/jquery.sparkline.min.js"></script>
         <script type="text/javascript" charset="utf8" src="/js/graphs.js"> </script>
 
         <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">

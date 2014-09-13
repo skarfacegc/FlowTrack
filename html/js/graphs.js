@@ -62,32 +62,54 @@ function getTalkerData() {
 
 function drawTalkerGraphs() {
 
-        for (var id in talkerData.ipPairs)
-        {
-            console.log("ID: " + talkerData.ipPairs[id][0]);
+    for (var pair_id in talkerData.ipPairs)
+    {
+        console.log("ID: " + pair_id);
 
-            $.ajax({
-                url: '/json/TalkerGraphTotalsForLast/' + 
-                    talkerData.ipPairs[id][0] + "/" + talkerData.ipPairs[id][1] +
-                    "/" + minutes_back + "/" +bucket_size,
-                type: 'GET',
-                dataType: 'json',
-                success: onTalkerGraphDataReceived
-            });
-        }
-        
-        // $.ajax({
-        //     url: '/json/TalkerGraphTotalsForLast/' + 
-        //         pair[0] + "/" + pair[1] +"/" + minutes_back + "/" +bucket_size,
-        //     type: 'GET',
-        //     dataType: 'json',
-        //     success: onTalkerGraphData
-        // });
+    // This bit of nastiness is to create a closure to pass the pair_id into the 
+    // pair graph rendering routine
+    (function(pair_id){
+        $.ajax({
+            url: '/json/TalkerGraphTotalsForLast/' + 
+            talkerData.ipPairs[pair_id][0] + "/" + talkerData.ipPairs[pair_id][1] +
+            "/" + minutes_back + "/" +bucket_size,
+            type: 'GET',
+            dataType: 'json',
+            success: function(json) {
+                onTalkerGraphDataReceived(json, pair_id);
+            }
+        });
+    })(pair_id);
+}
 }
 
 
-function onTalkerGraphDataReceived(graph_data) {
-    console.log(graph_data);
+function onTalkerGraphDataReceived(graph_data, pair_id) {
+
+    // Figure out the max value for graphs
+    var max_egress = Math.max.apply(null, graph_data["egress_bytes"]);
+    var max_ingress = Math.max.apply(null, graph_data["ingress_bytes"]);
+    var maxValue = 0;
+    if( max_egress > max_ingress)
+    {
+        maxValue = max_egress;
+    }
+    else
+    {
+        maxValue = max_ingress;
+    }
+
+    console.log(maxValue);
+
+    $('#'+pair_id).sparkline(graph_data["egress_bytes"], {height: "50px", width: "90%", 
+        lineColor: "#BAD8F8", fillColor: false, chartRangeMax: maxValue, spotColor: false, 
+        minSpotColor: false, maxSpotColor: false, lineWidth: 2});
+
+    $('#'+pair_id).sparkline(graph_data["ingress_bytes"], {height: "50px", width: "90%", 
+        lineColor: "#E2BF43", fillColor: false, composite: true, chartRangeMax: maxValue,
+        spotColor: false, minSpotColor: false, maxSpotColor: false, lineWidth: 2});;
+
+
 }
 
 function onTalkerDataReceived(talkers) {
@@ -127,13 +149,13 @@ function onTalkerDataReceived(talkers) {
         }
 
         html_slug = html_slug + "<div class='content gridItem col span_1_of_3'>" +
-            "<div class='internal_ip_name'>" + this.internal_ip_name + " &nbsp;</div>" +
-            "<div class='external_ip_name'>&nbsp;" + this.external_ip_name + "</div>" +
-            "<span class='change_indicator fa " + grid_change + " fa-fw'></span>" +
-            "<span class='internal_ip'>" + this.internal_ip + "</span>" +
-            "<span class='external_ip'>" + this.external_ip + "</span>" +
-            "<div id='" + this.id + "' class='talker_graph'>Loading ...</div>" +
-            "</div>";
+        "<div class='internal_ip_name'>" + this.internal_ip_name + " &nbsp;</div>" +
+        "<div class='external_ip_name'>&nbsp;" + this.external_ip_name + "</div>" +
+        "<span class='change_indicator fa " + grid_change + " fa-fw'></span>" +
+        "<span class='internal_ip'>" + this.internal_ip + "</span>" +
+        "<span class='external_ip'>" + this.external_ip + "</span>" +
+        "<div id='" + this.id + "' class='talker_graph'>Loading ...</div>" +
+        "</div>";
 
         if (div_count == 3) {
             div_count = 0;
@@ -145,6 +167,6 @@ function onTalkerDataReceived(talkers) {
     });
 
 
-    drawTalkerGraphs();
-    $("#talker_grid").append(html_slug);
+drawTalkerGraphs();
+$("#talker_grid").append(html_slug);
 }

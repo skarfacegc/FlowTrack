@@ -159,16 +159,23 @@ sub aggregateBucketTalkersJSON
     my $ingress_bytes;
     my $egress_bytes;
 
-
     my $flow_buckets = $FT->getSumBucketsForTalkerPairForLast( $ip_a, $ip_b, $bucketsize, $minutes_back );
 
     foreach my $flow ( @{$flow_buckets} )
     {
-        push(@{$ingress_bytes}, $flow->{ingress_bytes});
-        push(@{$egress_bytes}, $flow->{egress_bytes});
+        push( @{$ingress_bytes}, $flow->{ingress_bytes} );
+        push( @{$egress_bytes},  $flow->{egress_bytes} );
     }
 
-    $ret_struct->{ingress_byes} = $ingress_bytes;
+    # remove the first and last sample (to clean out 0s)
+    shift( @{$ingress_bytes} );
+    pop( @{$ingress_bytes} );
+
+    shift( @{$egress_bytes} );
+    pop( @{$egress_bytes} );
+
+
+    $ret_struct->{ingress_bytes} = $ingress_bytes;
     $ret_struct->{egress_bytes} = $egress_bytes;
 
     $self->render( json => $ret_struct );
