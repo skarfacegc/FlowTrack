@@ -147,20 +147,31 @@ sub aggergateBucketJSON
 # Returns the data for the per pair graphs
 sub aggregateBucketTalkersJSON
 {
-    my $self = shift();
-    my $logger = get_logger ();
+    my $self   = shift();
+    my $logger = get_logger();
 
     my $minutes_back = $self->param('minutes');
     my $bucketsize   = $self->param('bucketsize');
     my $ip_a         = $self->param('ipa');
     my $ip_b         = $self->param('ipb');
 
+    my $ret_struct;
+    my $ingress_bytes;
+    my $egress_bytes;
+
+
     my $flow_buckets = $FT->getSumBucketsForTalkerPairForLast( $ip_a, $ip_b, $bucketsize, $minutes_back );
 
-    # $logger->debug(Dumper($flow_buckets));
+    foreach my $flow ( @{$flow_buckets} )
+    {
+        push(@{$ingress_bytes}, $flow->{ingress_bytes});
+        push(@{$egress_bytes}, $flow->{egress_bytes});
+    }
 
+    $ret_struct->{ingress_byes} = $ingress_bytes;
+    $ret_struct->{egress_bytes} = $egress_bytes;
 
-    $self->render( json => $flow_buckets );
+    $self->render( json => $ret_struct );
 
     return;
 }
