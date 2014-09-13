@@ -64,7 +64,6 @@ function drawTalkerGraphs() {
 
     for (var pair_id in talkerData.ipPairs)
     {
-        console.log("ID: " + pair_id);
 
     // This bit of nastiness is to create a closure to pass the pair_id into the 
     // pair graph rendering routine
@@ -98,8 +97,6 @@ function onTalkerGraphDataReceived(graph_data, pair_id) {
     {
         maxValue = max_ingress;
     }
-
-    console.log(maxValue);
 
     $('#'+pair_id).sparkline(graph_data["egress_bytes"], {height: "50px", width: "90%", 
         lineColor: "#BAD8F8", fillColor: false, chartRangeMax: maxValue, spotColor: false, 
