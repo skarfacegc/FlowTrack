@@ -1,7 +1,9 @@
 [![Build Status](https://travis-ci.org/skarfacegc/FlowTrack.svg?branch=feature%2FgridGraph)](https://travis-ci.org/skarfacegc/FlowTrack)
 
+**This is fairly out of date, and needs some screenshots. I'll be updating in the near future.**
 
-**Current work is happening on feature/gridGraph**
+
+Current work is happening on feature/gridGraph
 
 Sample Graph View (in the feature/graphing branch currently)
 About
