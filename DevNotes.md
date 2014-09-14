@@ -18,16 +18,3 @@ Main graph call stack:
 ~~Simplify flow storage by siwtching to ArrayTupleFetch~~
 http://atrueswordsman.wordpress.com/2009/07/10/perl-dbi-batch-uploadinsert-row-wise-vs-column-wise-binding/ ~~ 
 DONE
-
-
-TODO
------
-- short term
-    - add internal talkers to talker graph data
-    - expose internal flows graph line 
-
-- Longer Term
-    - Sepearte 3rd party css/js
-    - Fix awkward package naming
-    - Fix awkward logging config (build into main obj perhaps?)
-    - Is the schema stuff really needed?
