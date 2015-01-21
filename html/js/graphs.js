@@ -36,6 +36,7 @@ function onGraphDataReceived(series) {
         }
     };
 
+
     $.plot($("#topGraph"), [series.ingress_bytes, series.egress_bytes], options);
 }
 
@@ -59,6 +60,10 @@ function getTalkerData() {
 
 }
 
+function isDemoMode()
+{
+    return window.location.href.match(/[\?&amp;]demo=1/);
+}
 
 function drawTalkerGraphs() {
 
@@ -145,12 +150,18 @@ function onTalkerDataReceived(talkers) {
             html_slug = html_slug + "<div id='" + div_count + "' class='section group'>";
         }
 
+        var internal_name = !isDemoMode() ? this.internal_ip_name : "your.network.com";
+        var internal_ip = !isDemoMode() ? this.internal_ip : "192.16.1.254";
+        var external_name = !isDemoMode() ? this.external_ip_name : "google.com";
+        var external_ip = !isDemoMode() ? this.external_ip : "74.125.228.104";
+
+
         html_slug = html_slug + "<div class='content gridItem col span_1_of_3'>" +
-        "<div class='internal_ip_name'>" + this.internal_ip_name + " &nbsp;</div>" +
-        "<div class='external_ip_name'>&nbsp;" + this.external_ip_name + "</div>" +
+        "<div class='internal_ip_name'>" + internal_name + " &nbsp;</div>" +
+        "<div class='external_ip_name'>&nbsp;" + external_name + "</div>" +
         "<span class='change_indicator fa " + grid_change + " fa-fw'></span>" +
-        "<span class='internal_ip'>" + this.internal_ip + "</span>" +
-        "<span class='external_ip'>" + this.external_ip + "</span>" +
+        "<span class='internal_ip'>" + internal_ip + "</span>" +
+        "<span class='external_ip'>" + external_ip + "</span>" +
         "<div id='" + this.id + "' class='talker_graph'>Loading ...</div>" +
         "</div>";
 
