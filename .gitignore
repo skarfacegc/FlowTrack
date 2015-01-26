@@ -4,6 +4,7 @@
 */*~
 TAGS
 *.sqlite
+.tag*
 *sublime-workspace
 portlist.xml
 Profiling/
