@@ -186,6 +186,12 @@ sub updateRecentTalkers
     my $scored_flows;
     my $update_sql;
 
+    if(!defined($recent_flows) && !defined($recent_talkers))
+    {
+        return;
+    }
+
+
     $update_sql = qq{
         INSERT OR REPLACE INTO 
             recent_talkers (internal_ip, external_ip, score, last_update)
