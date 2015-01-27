@@ -12,3 +12,5 @@ cover:
 	cover --launch
 clean: 
 	rm -rf cover_db/ TEST_FT_* tests_results.xml
+distclean: clean
+	rm Data/* log/*
