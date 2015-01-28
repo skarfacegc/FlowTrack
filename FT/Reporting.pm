@@ -9,6 +9,7 @@ use Carp;
 use Data::Dumper;
 use Log::Log4perl qw{get_logger};
 use Net::IP;
+use List::Util;
 
 use FT::Configuration;
 use FT::FlowTrack;
@@ -19,7 +20,7 @@ use FT::IP;
 #
 
 # How much to increment the score when we see a talker pair
-our $SCORE_INCREMENT = 3;
+our $SCORE_INCREMENT = 0;
 
 # The multiplier for the last update time (i.e. $SCORE_DECREMENT * (time - last_update))
 our $SCORE_DECREMENT = .5;
@@ -187,11 +188,10 @@ sub updateRecentTalkers
     my $scored_flows;
     my $update_sql;
 
-    if(!defined($recent_flows) && !defined($recent_talkers))
+    if ( !defined($recent_flows) && !defined($recent_talkers) )
     {
         return;
     }
-
 
     $update_sql = qq{
         INSERT OR REPLACE INTO 
@@ -200,6 +200,7 @@ sub updateRecentTalkers
             (?,?,?,?)
     };
 
+    # Age the scores
     # load all of our existing talker pairs into the return struct
     # decrement the score for each of them  (we'll add to it later)
     foreach my $talker_pair ( keys %$recent_talkers )
@@ -209,6 +210,10 @@ sub updateRecentTalkers
           $scored_flows->{$talker_pair}{score} -
           int( ( $SCORE_DECREMENT * ( time - $recent_talkers->{$talker_pair}{last_update} ) ) );
     }
+
+    #
+    # Score is updated here
+    #
 
     # Now go through all of our recent flows and update ret_struct;
     foreach my $recent_pair ( keys %$recent_flows )
@@ -221,10 +226,15 @@ sub updateRecentTalkers
             $scored_flows->{$recent_pair}{score}       = 0;
         }
 
-        # Log our flow count for this pair
-        $scored_flows->{$recent_pair}{score} +=
-          $SCORE_INCREMENT + int( $recent_flows->{$recent_pair}{total_bytes} / $SCORE_BYTES );
+        my @flow_bytes = map $_->{bytes}, @{ $recent_flows->{$recent_pair}{flows} };
 
+
+        unless ( List::Util::sum(@flow_bytes) < 500 )
+        {
+            # Add the average traffic for the recent flows to the score
+            $scored_flows->{$recent_pair}{score} +=
+              int( $recent_flows->{$recent_pair}{total_bytes} / scalar( @{ $recent_flows->{$recent_pair}{flows} } ) );
+        }
     }
 
     # Now do the DB updates
@@ -233,13 +243,15 @@ sub updateRecentTalkers
     my $sth = $dbh->prepare($update_sql)
       or $logger->warning( "Couldn't prepare:\n\t $update_sql\n\t" . $dbh->errstr );
 
-    foreach my $scored_flow ( keys $scored_flows )
+    foreach my $scored_flow ( keys %$scored_flows )
     {
         $sth->execute( $scored_flows->{$scored_flow}{internal_ip},
                        $scored_flows->{$scored_flow}{external_ip},
                        $scored_flows->{$scored_flow}{score}, time )
           or $logger->warning( "Couldn't execute: " . $dbh->errstr );
     }
+
+    return;
 
 }
 
@@ -254,7 +266,7 @@ sub getRecentTalkers
     my $ret_struct = {};
 
     my $sql = qq{
-         SELECT * FROM recent_talkers
+         SELECT * FROM recent_talkers ORDER BY score, last_update
     };
 
     my $sth = $dbh->prepare($sql) or $logger->warn( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
@@ -283,7 +295,7 @@ sub getTopRecentTalkers
     my $ret_list;
 
     my $sql = qq{
-        SELECT * FROM recent_talkers ORDER BY last_update, score DESC LIMIT ?
+        SELECT * FROM recent_talkers ORDER BY score, last_update DESC LIMIT ?
     };
 
     my $sth = $dbh->prepare($sql) or $logger->warn( "Couldn't prepare:\n $sql\n" . $dbh->errstr );

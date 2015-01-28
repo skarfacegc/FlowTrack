@@ -41,6 +41,7 @@ Installation & Use
     - Net::IP
     - DateTime
     - Net::DNS
+    - List::Util
     - Devel::Cover (for UT coverage)
     - Test::Pretty (nicer output for prove)
     
