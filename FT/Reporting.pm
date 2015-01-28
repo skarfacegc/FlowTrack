@@ -85,9 +85,10 @@ sub runReports
 sub getFlowsByTalkerPair
 {
     my $self               = shift();
+    my $duration           = shift();
     my $logger             = get_logger();
     my $config             = FT::Configuration::getConf();
-    my $reporting_interval = $config->{reporting_interval};
+    my $reporting_interval = $duration // $config->{reporting_interval};
     my $ret_struct;
 
     my $flows = $self->getFlowsForLast( $config->{reporting_interval} );
