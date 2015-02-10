@@ -92,7 +92,7 @@ sub getFlowsByTalkerPair
     my $reporting_interval = $duration // $config->{reporting_interval};
     my $ret_struct;
 
-    my $flows = $self->getFlowsForLast( $config->{reporting_interval} );
+    my $flows = $self->getFlowsForLast( $reporting_interval );
 
     foreach my $flow (@$flows)
     {
