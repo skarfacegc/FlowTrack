@@ -21,6 +21,7 @@ Installation & Use
 
 ### Requirements
 (I will likely add new stuff to this list, such as rrdtool):
+
 - Working SQLite Install
 - Some source of flow data (rflowd from dd-wrt works great)
     - May or may not work with ipfix
@@ -38,8 +39,6 @@ Installation & Use
     - List::Util
     - Devel::Cover (for UT coverage)
     - Test::Pretty (nicer output for prove)
-    
-- Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
 
 ### Installing
