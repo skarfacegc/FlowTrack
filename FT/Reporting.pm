@@ -92,7 +92,7 @@ sub getFlowsByTalkerPair
     my $reporting_interval = $duration // $config->{reporting_interval};
     my $ret_struct;
 
-    my $flows = $self->getFlowsForLast( $reporting_interval );
+    my $flows = $self->getFlowsForLast($reporting_interval);
 
     foreach my $flow (@$flows)
     {
@@ -195,9 +195,9 @@ sub updateRecentTalkers
 
     $update_sql = qq{
         INSERT OR REPLACE INTO 
-            recent_talkers (internal_ip, external_ip, score, last_update)
+            recent_talkers (id, internal_ip, external_ip, score, last_update)
         VALUES
-            (?,?,?,?)
+            (?,?,?,?,?)
     };
 
     # Age the scores
@@ -228,7 +228,6 @@ sub updateRecentTalkers
 
         my @flow_bytes = map $_->{bytes}, @{ $recent_flows->{$recent_pair}{flows} };
 
-
         unless ( List::Util::sum(@flow_bytes) < 500 )
         {
             # Add the average traffic for the recent flows to the score
@@ -245,7 +244,8 @@ sub updateRecentTalkers
 
     foreach my $scored_flow ( keys %$scored_flows )
     {
-        $sth->execute( $scored_flows->{$scored_flow}{internal_ip},
+        $sth->execute( $scored_flows->{$scored_flow}{internal_ip} . $scored_flows->{$scored_flow}{external_ip},
+                       $scored_flows->{$scored_flow}{internal_ip},
                        $scored_flows->{$scored_flow}{external_ip},
                        $scored_flows->{$scored_flow}{score}, time )
           or $logger->warning( "Couldn't execute: " . $dbh->errstr );
@@ -266,7 +266,7 @@ sub getRecentTalkers
     my $ret_struct = {};
 
     my $sql = qq{
-         SELECT * FROM recent_talkers ORDER BY score, last_update
+         SELECT * FROM recent_talkers ORDER BY score DESC, last_update DESC
     };
 
     my $sth = $dbh->prepare($sql) or $logger->warn( "Couldn't prepare:\n $sql\n" . $dbh->errstr );
@@ -319,7 +319,11 @@ sub purgeRecentTalkers
     my $dbh    = $self->_initDB();
     my $rows_deleted;
     my $sql = qq {
-        DELETE FROM recent_talkers WHERE score <= 0
+        DELETE FROM recent_talkers WHERE id NOT IN (
+            SELECT id FROM recent_talkers
+            ORDER BY score DESC
+            LIMIT 21
+        )
     };
 
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );

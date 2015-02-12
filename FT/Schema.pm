@@ -91,6 +91,12 @@ $TABLES->{raw_flow} = [
 ];
 
 $TABLES->{recent_talkers} = [
+  
+    # ID field (auto inc)
+    {
+      name => 'id',
+      type => 'INT',
+    },
     {
        name => 'internal_ip',
        type => 'INT',
@@ -110,7 +116,7 @@ $TABLES->{recent_talkers} = [
     # TODO: Make primary key setup less dumb.
     {
        name => 'last_update',
-       type => 'INT, PRIMARY KEY (internal_ip, external_ip)'
+       type => 'INT, PRIMARY KEY (id)'
     }
 
 ];
