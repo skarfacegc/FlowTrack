@@ -39,7 +39,7 @@ Installation & Use
     - List::Util
     - Devel::Cover (for UT coverage)
     - Test::Pretty (nicer output for prove)
-- a working SQLite installation
+
 
 ### Installing
 I recommend cloning the repository to make getting updates etc. easier.
