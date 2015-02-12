@@ -174,9 +174,8 @@ sub aggregateBucketTalkersJSON
     shift( @{$egress_bytes} );
     pop( @{$egress_bytes} );
 
-
     $ret_struct->{ingress_bytes} = $ingress_bytes;
-    $ret_struct->{egress_bytes} = $egress_bytes;
+    $ret_struct->{egress_bytes}  = $egress_bytes;
 
     $self->render( json => $ret_struct );
 
@@ -193,9 +192,8 @@ sub topTalkersJSON
     my $recent_talker_list = $REPORTING->getTopRecentTalkers($limit);
     my $cooked_talker_list;
 
-    foreach my $recent_talker (@$recent_talker_list)
+    foreach my $recent_talker ( sort { $b->{'score'} <=> $a->{'score'} } @{$recent_talker_list} )
     {
-
         my $talker_struct;
         my $internal_network_obj = FT::IP::getIPObj( $recent_talker->{internal_ip} );
         my $external_network_obj = FT::IP::getIPObj( $recent_talker->{external_ip} );
@@ -210,7 +208,6 @@ sub topTalkersJSON
         $talker_struct->{id}               = $recent_talker->{internal_ip} . $recent_talker->{external_ip};
 
         push @$cooked_talker_list, $talker_struct;
-
     }
 
     $self->render( json => $cooked_talker_list );
