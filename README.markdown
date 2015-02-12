@@ -1,11 +1,7 @@
+![Picture](http://flowtrack.info/images/screenshot.png)
+
 [![Build Status](https://travis-ci.org/skarfacegc/FlowTrack.svg?branch=feature%2FgridGraph)](https://travis-ci.org/skarfacegc/FlowTrack)
 
-**This is fairly out of date, and needs some screenshots. I'll be updating in the near future.**
-
-
-Current work is happening on feature/gridGraph
-
-Sample Graph View (in the feature/graphing branch currently)
 About
 -----
 FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
@@ -19,8 +15,6 @@ under high load, let me know how it goes.
 I'd love to know if you're using it. Questions?  Bugs? Feature Requests?  Open them as issues on [GitHub](https://github.com/skarfacegc/FlowTrack/)
 
 Take a look at the roadmap (below) for a rough idea of status.
-
-**Note:** I forgot to add protocol to the table view, it's in the develop branch now.  
 
 Installation & Use
 ------------------
