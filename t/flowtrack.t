@@ -6,20 +6,14 @@ use Log::Log4perl qw(get_logger);
 use autodie;
 use File::Temp;
 
-use Test::More;
+use Test::More tests => 43;
 use Data::Dumper;
 use FT::Schema;
 use Log::Log4perl;
 
-use vars qw($TEST_COUNT );
-
-# Holds test count
-my $TEST_COUNT;
-
 BEGIN
 {
     use_ok('FT::FlowTrack');
-    $TEST_COUNT += 1;
 }
 
 test_main();
@@ -39,9 +33,6 @@ sub test_main
     dbCreation();
     dbRawQueryTests();
     dbByteBucketQueryTests();
-    done_testing($TEST_COUNT);
-
-    return;
 }
 
 #
@@ -58,21 +49,18 @@ sub customObjects
 
     # Custom Values
     my $ft_custom = FT::FlowTrack->new( "./blah", "192.168.1.1/24" );
-    ok( $ft_custom->{location}         eq "./blah",         "custom location" );
+    ok( $ft_custom->{location} eq "./blah",                 "custom location" );
     ok( $ft_custom->{internal_network} eq "192.168.1.1/24", "custom network" );
     unlink("./blah/FlowTrack.sqlite");
     rmdir("./blah");
 
-    $TEST_COUNT += 2;
-
-    return;
 }
 
 sub defaultObjectTests
 {
     # Default Values
     my $ft_default = FT::FlowTrack->new();
-    ok( $ft_default->{location}         eq "Data",           "default location" );
+    ok( $ft_default->{location} eq "Data",                   "default location" );
     ok( $ft_default->{internal_network} eq "192.168.1.0/24", "default network" );
 
     # make sure we get back a well known table name
@@ -86,9 +74,6 @@ sub defaultObjectTests
     my $create_sql = $ft_default->get_create_sql("raw_flow");
     ok( $create_sql ~~ /CREATE.*fl_time.*/, "Create statement generation" );
 
-    $TEST_COUNT += 5;
-
-    return;
 }
 
 #
@@ -102,7 +87,6 @@ sub dbCreation
     # We'll use $dbh and $db_creat for several areas of testing
     #
     my $db_location = getTmp();
-
 
     my $db_creat = FT::FlowTrack->new($db_location);
 
@@ -124,11 +108,6 @@ sub dbCreation
     my @table_list = $dbh->tables();
     ok( grep( {/raw_flow/} @table_list ), "raw_flow created" );
 
-    # Make sure we get back the number of buckets we were expecting  (should be 1000)
-
-    $TEST_COUNT += 6;
-
-    return;
 }
 
 #
@@ -142,9 +121,9 @@ sub dbRawQueryTests
 
     # Verify creation and retrieval
     # using canned data generated in buildRawFlows
-    ok( !$db_creat->storeFlow(),                                   "Store no flows" );
+    ok( $db_creat->storeFlow(),                                    "Store no flows" );
     ok( $db_creat->storeFlow( buildRawFlows() ),                   "Store Flow" );
-    ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 105,       "Flows for last" );
+    ok( scalar( @{ $db_creat->getFlowsForLast(5) } ) == 106,       "Flows for last" );
     ok( scalar( @{ $db_creat->getIngressFlowsForLast(5) } ) == 53, "IngressFlowsFlorLast" );
     ok( scalar( @{ $db_creat->getEgressFlowsForLast(5) } ) == 52,  "EgressFlowsFlorLast" );
 
@@ -156,21 +135,110 @@ sub dbRawQueryTests
     # Verify Fields are correct from the DB
     my $sample = $db_creat->getFlowsInTimeRange( 0, time );
     ok(
-        $sample->[0]{src_ip}        eq "167837698"
-          && $sample->[0]{dst_ip}   eq "167772169"
+        $sample->[0]{src_ip} eq "167837698"
+          && $sample->[0]{dst_ip} eq "167772169"
           && $sample->[0]{src_port} eq "1024"
           && $sample->[0]{dst_port} eq "80"
-          && $sample->[0]{bytes}    eq "8192"
-          && $sample->[0]{packets}  eq "255"
+          && $sample->[0]{bytes} eq "8192"
+          && $sample->[0]{packets} eq "255"
           && $sample->[0]{protocol} eq "7",
-        ,
         "compare single record and default time sort"
     );
 
-    # now test purging
-    ok( $db_creat->purgeData( time - 86400 ) == 1, "purge data" );
+    # Load up a single talker pair.  Using the same src/dst as abve for the query.
+    my $talker_pairs = $db_creat->getTalkerFlowsInTimeRange( '10.1.0.2', '10.0.0.9', 0, time );
+    ok(
+        $talker_pairs->[0]{src_ip} eq "167837698"
+          && $talker_pairs->[0]{dst_ip} eq "167772169"
+          && $talker_pairs->[0]{src_port} eq "1024"
+          && $talker_pairs->[0]{dst_port} eq "80"
+          && $talker_pairs->[0]{bytes} eq "8192"
+          && $talker_pairs->[0]{packets} eq "255"
+          && $talker_pairs->[0]{protocol} eq "7",
+        "getTalkerFlowsInTimeRange"
+    );
 
-    $TEST_COUNT += 8;
+    #
+    # Test talker ingress
+    #
+
+    # set packets to 111 so we know if we got the right one
+    my $egress_pair = {
+                        'protocol' => 7,
+                        'bytes'    => 222,
+                        'src_port' => 1024,
+                        'flow_id'  => 107,
+                        'packets'  => 111,
+                        'dst_port' => 80,
+                        'src_ip'   => 167772161,
+                        'dst_ip'   => 3232235777,
+                        'fl_time'  => 1408856362
+    };
+
+    # set packets to 222 so we know we got the right one in the test
+    my $ingress_pair = {
+                         'protocol' => 7,
+                         'bytes'    => 222,
+                         'src_port' => 1024,
+                         'flow_id'  => 107,
+                         'packets'  => 222,
+                         'dst_port' => 80,
+                         'src_ip'   => 3232235777,
+                         'dst_ip'   => 167772161,
+                         'fl_time'  => 1408856362
+    };
+
+    $db_creat->storeFlow( [ $egress_pair, $ingress_pair ] );
+
+    # Ingress
+    my $ingress_talker_quad = $db_creat->getIngressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
+    ok( $ingress_talker_quad->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test dotted quad fwd" );
+
+    # Now reverse the pairs
+    $ingress_talker_quad = $db_creat->getIngressTalkerFlowsInTimeRange( '192.168.1.1', '10.0.0.1', 0, time );
+    ok( $ingress_talker_quad->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test dotted quad reverse" );
+
+    my $ingress_talker_int = $db_creat->getIngressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
+    ok( $ingress_talker_int->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test ip as int fwd" );
+
+    # Reverse the pair
+    $ingress_talker_int = $db_creat->getIngressTalkerFlowsInTimeRange( 167772161, 3232235777, 0, time );
+    ok( $ingress_talker_int->[0]{packets} == 222, "getIngressTalkerFlowsInTimeRange - pair test ip as int reverse" );
+
+    # Egress
+    my $egress_talker_quad = $db_creat->getEgressTalkerFlowsInTimeRange( '10.0.0.1', '192.168.1.1', 0, time );
+    ok( $egress_talker_quad->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test dotted quad fwd" );
+
+    # reverse the pair
+    $egress_talker_quad = $db_creat->getEgressTalkerFlowsInTimeRange( '192.168.1.1', '10.0.0.1', 0, time );
+    ok( $egress_talker_quad->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test dotted quad reverse" );
+
+    my $egress_talker_int = $db_creat->getEgressTalkerFlowsInTimeRange( 3232235777, 167772161, 0, time );
+    ok( $egress_talker_int->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test ip as int fwd" );
+
+    # reverse the pair
+    $egress_talker_int = $db_creat->getEgressTalkerFlowsInTimeRange( 167772161, 3232235777, 0, time );
+    ok( $egress_talker_int->[0]{packets} == 111, "getEgressTalkerFlowsInTimeRange - pair test ip as int reverse" );
+
+    # Try the *forLast routines
+    my $egress_for_last = $db_creat->getEgressTalkerFlowsForLast('10.0.0.1', '192.168.1.1', time);
+    ok( $egress_for_last->[0]{packets} == 111, "getEgressTalkerFlowsForLast");
+
+    my $ingress_for_last = $db_creat->getIngressTalkerFlowsForLast('10.0.0.1', '192.168.1.1', time);
+    ok( $ingress_for_last->[0]{packets} == 222, "getIngressTalkerFlowsForLast");
+
+    #
+    # Test Purge
+    #
+
+    # Add a single record at the beginning of time so we have some way
+    # to make sure the purge isn't overly agressive
+    # use the sample record from above, set it's time to 0 and store away.
+    $sample->[0]{fl_time} = 0;
+    $db_creat->storeFlow( [ $sample->[0] ] );
+
+    # now test purging
+    ok( $db_creat->purgeData( time - 86400 ) == 3, "purge data" );
 
 }
 
@@ -184,28 +252,70 @@ sub dbByteBucketQueryTests
     my $db_creat = FT::FlowTrack->new( $db_location, "10.0.0.1/32" );
     $db_creat->storeFlow( buildFlowsForBucketTest(300) );
 
-    my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, 0, time );
-
+    my $tmp_flows = $db_creat->getSumBucketsForTimeRange( 300, time - 299702, time );
 
     # Now test some bucketing
     ok( scalar @{$tmp_flows} == 1000, "Buckets in time range" );
 
     # Make sure the sums work
-    ok( $tmp_flows->[0]{ingress_bytes} == 12288 &&
-        $tmp_flows->[0]{egress_bytes} == 24576 &&
-        $tmp_flows->[0]{total_bytes} == 36864,  "Byte Sum" );
-    
-    ok( $tmp_flows->[0]{ingress_packets} == 768 &&
-        $tmp_flows->[0]{egress_packets} == 1536 &&
-        $tmp_flows->[0]{total_packets} == 2304,  "Packet Sum" );
+    ok(
+        $tmp_flows->[1]{ingress_bytes} == 12288
+          && $tmp_flows->[1]{egress_bytes} == 24576
+          && $tmp_flows->[1]{total_bytes} == 36864,
+        "Byte Sum"
+    );
+
+    ok(
+        $tmp_flows->[1]{ingress_packets} == 768
+          && $tmp_flows->[1]{egress_packets} == 1536
+          && $tmp_flows->[1]{total_packets} == 2304,
+        "Packet Sum"
+    );
+
+    # Now test building the bucketed list for our pair
+    my $talker_pair_buckets = $db_creat->getSumBucketsForTalkerPair( "10.1.0.1", "10.0.0.1", 300, time - 299702, time );
+    ok( scalar @{$talker_pair_buckets} == 1000, "Talker Pair Buckets in Time Range" );
+
+    # Make sure the sums work, since we're working on the same data as the normal bucket tests
+    # the data should be the same.  We'll check to make sure we're not pulling bad pairs in the
+    # next test
+    ok(
+        $talker_pair_buckets->[1]{ingress_bytes} == 12288
+          && $talker_pair_buckets->[1]{egress_bytes} == 24576
+          && $talker_pair_buckets->[1]{total_bytes} == 36864,
+        "Talker Pair Byte Sum"
+    );
+
+    ok(
+        $talker_pair_buckets->[1]{ingress_packets} == 768
+          && $talker_pair_buckets->[1]{egress_packets} == 1536
+          && $talker_pair_buckets->[1]{total_packets} == 2304,
+        "Talker Pair Packet Sum"
+    );
+
+    # now ask for some pairs not in our data set, make sure we don't get values back
+    $talker_pair_buckets = $db_creat->getSumBucketsForTalkerPair( "10.1.0.1", "10.5.0.1", 300, time - 299702, time );
+    ok(
+        $talker_pair_buckets->[1]{ingress_bytes} == 0
+          && $talker_pair_buckets->[1]{egress_bytes} == 0
+          && $talker_pair_buckets->[1]{total_bytes} == 0,
+        "Talker Pair Byte Sum - no pairs in data"
+    );
+
+    ok(
+        $talker_pair_buckets->[1]{ingress_packets} == 0
+          && $talker_pair_buckets->[1]{egress_packets} == 0
+          && $talker_pair_buckets->[1]{total_packets} == 0,
+        "Talker Pair Packet Sum - no pairs in data"
+    );
 
     # Make sure that the relative call returns something. getting the time alignment correct
     # is likely more trouble than it's worth  so I'm looking for non-zero count.  this actully just
     # calls getSumBuckgetsForTimeRange underneath so I've already verified that the base call is
     # working correctly above.
     ok( scalar @{ $db_creat->getSumBucketsForLast( 300, 15 ) } > 0, "Buckets for last" );
-
-    $TEST_COUNT += 4;
+    ok( scalar @{ $db_creat->getSumBucketsForTalkerPairForLast( "10.1.0.1", "10.0.0.1", 300, 15 ) } > 0,
+        "getSumBucketsForTalkerPairForLast" );
 }
 
 #
@@ -222,7 +332,7 @@ sub buildRawFlows
 
     # First we add a flow at the beginning of time (to test our date math)
     my $ancient_flow = {
-                         fl_time  => 0,            # The dark ages
+                         fl_time  => $time - 2,    # Add a somewhat old packet.
                          src_ip   => 167837698,    # 10.1.0.2
                          dst_ip   => 167772169,    # 10.0.0.9
                          src_port => 1024,
@@ -286,6 +396,7 @@ sub buildFlowsForBucketTest
     my $total_flows          = 1000;    # Total number of both egress and ingress flows to return
     my $current_bucket       = 0;       # holds the current bucket
     my $i;
+
     for ( $i = 0 ; $i < $total_flows ; $i++ )
     {
         for ( my $j = 0 ; $j < $flows_in_each_bucket ; $j++ )
@@ -316,6 +427,7 @@ sub buildFlowsForBucketTest
         }
 
         $current_bucket += $bucket_size;
+
     }
 
     return $flow_list;
@@ -331,10 +443,5 @@ sub getTmp
     #
     my $tmpspace = File::Temp->new();
     return File::Temp->newdir( 'TEST_FT_XXXXXX', CLEANUP => 1 );
-}
-
-END
-{
-    #cleanup
 }
 

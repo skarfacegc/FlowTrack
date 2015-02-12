@@ -1,7 +1,11 @@
-**Current work is happening on feature/gridGraph**
+[![Build Status](https://travis-ci.org/skarfacegc/FlowTrack.svg?branch=feature%2FgridGraph)](https://travis-ci.org/skarfacegc/FlowTrack)
+
+**This is fairly out of date, and needs some screenshots. I'll be updating in the near future.**
 
 
+Current work is happening on feature/gridGraph
 
+Sample Graph View (in the feature/graphing branch currently)
 About
 -----
 FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
@@ -23,6 +27,9 @@ Installation & Use
 
 ### Requirements
 (I will likely add new stuff to this list, such as rrdtool):
+- Working SQLite Install
+- Some source of flow data (rflowd from dd-wrt works great)
+    - May or may not work with ipfix
 - Perl 5.10+  (tested on 5.16.1)
     - Mojolicious
     - Net::Server
@@ -33,8 +40,11 @@ Installation & Use
     - Net::Flow
     - Net::IP
     - DateTime
-    - DateTime::Timezone (likely installed by the above)
-    - Devel::Cover (for coverage reports)
+    - Net::DNS
+    - List::Util
+    - Devel::Cover (for UT coverage)
+    - Test::Pretty (nicer output for prove)
+    
 - Something to send you v5 netflow data (rflowd on dd-wrt works great!)
 - a working SQLite installation
 
@@ -137,14 +147,19 @@ Planned Roadmap
     - ~~Docs~~
     - ~~Cleanup dead files~~
 - **Release 0.0.2**
-    - Active Talker Grid
+    - ~~Active Talker Grid~~
+    - ~~DNS Resolution~~
+    - ~~grid change indicators~~
+    - ~~Main Ingress/Egress Graph~~
     - Active Talker Graphs
-    - Main Ingress/Egress Graph
+    - Link Pair grid items to table view
 - **Future**
+    - Per host detail page
+    - UI Driven time range selection
     - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX 
       source.  Gonna look at Yaf at some pt)
     - HTTP Auth
-    - Refactor config loading (buggy as hell right now)
+    - Refactor config loading (not happy with the current solution)
 
 
 

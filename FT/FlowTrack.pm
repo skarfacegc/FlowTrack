@@ -29,7 +29,7 @@ use FT::IP;
 sub new
 {
     my $class = shift;
-    $class = ref $class if ref $class;
+
     my $self = {};
 
     my ( $location, $internal_network ) = @_;
@@ -63,15 +63,9 @@ sub new
 sub storeFlow
 {
     my ( $self, $flows ) = @_;
-    my $insert_struct;
-    my $insert_queue;
-    my $logger        = get_logger();
-    my $batch_counter = 0;
-    my $total_saved   = 0;
-    my $batch_size    = 100;
-
-    # Don't do anything if we don't have flows
-    return unless ( defined($flows) );
+    my $logger      = get_logger();
+    my $total_saved = 0;
+    my $total_flows = 0;
 
     my $dbh = $self->_initDB();
 
@@ -81,45 +75,30 @@ sub storeFlow
     };
 
     my $sth = $dbh->prepare($sql)
-      or $logger->logconfess( "Coudln't preapre SQL: " . $dbh->errstr() );
+      or $logger->logconfess( "Couldn't preapre SQL: " . $dbh->errstr() );
 
-    foreach my $flow_rec ( @{$flows} )
-    {
+    $total_flows = scalar( @{$flows} ) if ( defined($flows) );
 
-        # creat a datastructure that looks like this
-        # $insert_struct->[batch]{field_name1} = [ array of all values for field_name1 ]
-        # $insert_struct->[batch]{field_name2} = [ array of all values for field_name2 ]
-        #
-        # To be used by execute array
-        push( @{ $insert_struct->[$batch_counter]{$_} }, $flow_rec->{$_} ) for keys %$flow_rec;
-
-        $insert_queue++;
-        if ( $insert_queue > $batch_size )
+    # ArrayTupleFetch is called repeatedly until it returns undef.  Shifts off flow records from flows
+    # and returns an array of fields in the order expected by the sql above.  Removes the need for
+    # batching logic and simplifies things quite a bit.
+    $total_saved += $sth->execute_array(
         {
-            $batch_counter++;
-            $insert_queue = 0;
+           ArrayTupleFetch => sub {
+               my $flow_rec = shift(@$flows);
+
+               return undef if ( !defined($flow_rec) );
+
+               return [
+                        $flow_rec->{fl_time},  $flow_rec->{src_ip}, $flow_rec->{dst_ip},  $flow_rec->{src_port},
+                        $flow_rec->{dst_port}, $flow_rec->{bytes},  $flow_rec->{packets}, $flow_rec->{protocol}
+               ];
+             }
         }
-    }
+    );
 
-    #
-    # Write batches of data at a time.  Tuned by $batch_size above
-    #
-    foreach my $batch (@$insert_struct)
-    {
-        my @tuple_status;
-        my $rows_saved =
-          $sth->execute_array(
-                               { ArrayTupleStatus => \@tuple_status },
-                               $batch->{fl_time},  $batch->{src_ip}, $batch->{dst_ip},  $batch->{src_port},
-                               $batch->{dst_port}, $batch->{bytes},  $batch->{packets}, $batch->{protocol}
-          )
-          or $logger->logconfess(
-                              print Dumper( \@tuple_status ) . "\n trying to store flow in DB DBI: " . $dbh->errstr() );
+    $logger->debug( "Flows Saved: $total_saved of " . $total_flows );
 
-        $total_saved += $rows_saved;
-    }
-
-    $logger->debug("Saved: $total_saved");
     return 1;
 }
 
@@ -150,7 +129,7 @@ sub getFlowsForLast
 #   'dst_ip' => 1249764389,
 #   'fl_time' => '1357418340.41598'
 # };'
-# 
+#
 #
 sub getFlowsInTimeRange
 {
@@ -204,6 +183,7 @@ sub getIngressFlowsInTimeRange
         src_ip NOT BETWEEN ? AND ?
         AND
         dst_ip BETWEEN ? AND ?
+        ORDER BY fl_time
     };
 
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
@@ -255,6 +235,7 @@ sub getInternalFlowsInTimeRange
         src_ip BETWEEN ? AND ?
         AND
         dst_ip BETWEEN ? AND ?
+        ORDER BY fl_time
     };
 
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
@@ -307,6 +288,7 @@ sub getEgressFlowsInTimeRange
         src_ip BETWEEN ? AND ?
         AND
         dst_ip NOT BETWEEN ? AND ?
+        ORDER BY fl_time
     };
 
     my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
@@ -327,17 +309,167 @@ sub getEgressFlowsInTimeRange
 }
 
 #
+# Returns a list of flows between the specified addresses
+#
+sub getTalkerFlowsInTimeRange
+{
+    my $self = shift();
+    my ( $src_ip, $dst_ip, $start_time, $end_time ) = @_;
+    my $dbh    = $self->_initDB();
+    my $logger = get_logger();
+    my $ret_list;
+
+    my $src_ip_obj = FT::IP::getIPObj($src_ip);
+    my $dst_ip_obj = FT::IP::getIPObj($dst_ip);
+
+    my $sql = qq{
+        SELECT * FROM raw_flow WHERE
+        fl_time >= ? AND fl_time <= ?
+        AND
+        src_ip = ? 
+        AND
+        dst_ip = ?
+        ORDER BY fl_time
+    };
+
+    my $sth = $dbh->prepare($sql) or $logger->logconfess( 'failed to prepare:' . $DBI::errstr );
+
+    $sth->execute( $start_time, $end_time, $src_ip_obj->intip(), $dst_ip_obj->intip() )
+      or $logger->logconfess( "failed executing $sql:" . $DBI::errstr );
+
+    while ( my $flow_ref = $sth->fetchrow_hashref )
+    {
+        push @$ret_list, $flow_ref;
+    }
+
+    return $ret_list;
+
+}
+
+sub getIngressTalkerFlowsForLast
+{
+    my $self = shift;
+    my ( $ip_a, $ip_b, $duration ) = @_;
+
+    return $self->getIngressTalkerFlowsInTimeRange( $ip_a, $ip_b, time - ( $duration * 60 ), time );
+
+}
+
+# Returns the ingress flows given a pair of IPs
+#
+# This will figure out which ip is internal or external and
+# call getTalkerFlowsInTimeRange
+#
+sub getIngressTalkerFlowsInTimeRange
+{
+    my $self = shift();
+    my ( $ip_a, $ip_b, $start_time, $end_time ) = @_;
+    my $logger = get_logger();
+    my $src_ip;
+    my $dst_ip;
+    my $ret_struct;
+
+    my $ip_a_obj = FT::IP::getIPObj($ip_a);
+    my $ip_b_obj = FT::IP::getIPObj($ip_b);
+
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    # If $ip_a is internal and ip_b is external
+    # ingress is b as src a as dst
+    if ( FT::IP::IPOverlap( $self->{internal_network}, $ip_a )
+         && !FT::IP::IPOverlap( $self->{internal_network}, $ip_b ) )
+    {
+        $src_ip = $ip_b_obj->intip();
+        $dst_ip = $ip_a_obj->intip();
+    }
+
+    # If $ip_b is internal and $ip_a is external
+    # $ip_a is src and $ip_b is dst
+    elsif ( FT::IP::IPOverlap( $self->{internal_network}, $ip_b )
+            && !FT::IP::IPOverlap( $self->{internal_network}, $ip_a ) )
+    {
+        $src_ip = $ip_a_obj->intip();
+        $dst_ip = $ip_b_obj->intip();
+    }
+
+    # at this point we're either all external or all internal, so no ingress
+    else
+    {
+        return [];
+    }
+
+    return $self->getTalkerFlowsInTimeRange( $src_ip, $dst_ip, $start_time, $end_time );
+}
+
+sub getEgressTalkerFlowsForLast
+{
+    my $self = shift;
+    my ( $ip_a, $ip_b, $duration ) = @_;
+
+    return $self->getEgressTalkerFlowsInTimeRange( $ip_a, $ip_b, time - ( $duration * 60 ), time );
+
+}
+
+# Returns the egress flows given a pair of IPs
+#
+# This will figure out which ip is internal or external and
+# call getTalkerFlowsInTimeRange
+#
+sub getEgressTalkerFlowsInTimeRange
+{
+    my $self = shift();
+    my ( $ip_a, $ip_b, $start_time, $end_time ) = @_;
+    my $logger = get_logger();
+    my $src_ip;
+    my $dst_ip;
+    my $ret_struct;
+
+    my $ip_a_obj = FT::IP::getIPObj($ip_a);
+    my $ip_b_obj = FT::IP::getIPObj($ip_b);
+
+    my $internal_network = Net::IP->new( $self->{internal_network} );
+
+    # If $ip_a is internal and ip_b is external
+    # egress is a as src b as dst
+    if ( FT::IP::IPOverlap( $self->{internal_network}, $ip_a )
+         && !FT::IP::IPOverlap( $self->{internal_network}, $ip_b ) )
+    {
+        $src_ip = $ip_a_obj->intip();
+        $dst_ip = $ip_b_obj->intip();
+
+    }
+
+    # If $ip_b is internal and $ip_a is external
+    # egress is b as src a as dst
+    elsif ( FT::IP::IPOverlap( $self->{internal_network}, $ip_b )
+            && !FT::IP::IPOverlap( $self->{internal_network}, $ip_a ) )
+    {
+        $src_ip = $ip_b_obj->intip();
+        $dst_ip = $ip_a_obj->intip();
+    }
+
+    # at this point we're either all external or all internal, so no ingress
+    else
+    {
+        return [];
+    }
+
+    return $self->getTalkerFlowsInTimeRange( $src_ip, $dst_ip, $start_time, $end_time );
+}
+
+#
 # Get bucketed flows
 #
-# select count(*), sum(bytes), datetime(fl_time, 'unixepoch')
-#      from raw_flow group by round(fl_time/300) order by round(fl_time/300);
+# Takes: Bucket size in mintues, how may minutes ago to search
+#
+# ie getSumBucketsForLast(2, 180) will get the last 3 hours of samples in 2 minute buckets
 #
 sub getSumBucketsForLast
 {
     my $self = shift;
     my ( $bucket_size, $duration ) = @_;
 
-    return $self->getSumBucketsForTimeRange( $bucket_size, time - ( $duration * 60 ), time );
+    return $self->getSumBucketsForTimeRange( $bucket_size * 60, time - ( $duration * 60 ), time );
 
 }
 
@@ -379,7 +511,7 @@ sub getSumBucketsForTimeRange
 
     # List of fields we want in the final hash
     my $field_list = [
-                       'internal_flows',   'internal_bytes', 'total_packets',  'total_bytes',
+                       'internal_flows',   'internal_bytes', 'totaackets',     'total_bytes',
                        'total_flows',      'egress_bytes',   'egress_flows',   'ingress_flows',
                        'internal_packets', 'ingress_bytes',  'egress_packets', 'ingress_packets'
     ];
@@ -398,53 +530,9 @@ sub getSumBucketsForTimeRange
     my $ingress_flows = $self->getIngressFlowsInTimeRange( $start_time, $end_time );
     my $egress_flows = $self->getEgressFlowsInTimeRange( $start_time, $end_time );
 
-    # Update internal flow counters
-    foreach my $flow (@$internal_flows)
-    {
-        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
-
-        $buckets_by_time->{$bucket}{internal_flows}++;
-        $buckets_by_time->{$bucket}{internal_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{internal_packets} += $flow->{packets};
-
-        # Update the global counters
-        $buckets_by_time->{$bucket}{total_flows}++;
-        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
-
-    }
-
-    # update ingress flow counters
-    foreach my $flow (@$ingress_flows)
-    {
-        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
-
-        $buckets_by_time->{$bucket}{ingress_flows}++;
-        $buckets_by_time->{$bucket}{ingress_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{ingress_packets} += $flow->{packets};
-
-        # Update the global counters
-        $buckets_by_time->{$bucket}{total_flows}++;
-        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
-
-    }
-
-    # update egress flow counters
-    foreach my $flow (@$egress_flows)
-    {
-        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
-
-        $buckets_by_time->{$bucket}{egress_flows}++;
-        $buckets_by_time->{$bucket}{egress_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{egress_packets} += $flow->{packets};
-
-        # Update the global counters
-        $buckets_by_time->{$bucket}{total_flows}++;
-        $buckets_by_time->{$bucket}{total_bytes}   += $flow->{bytes};
-        $buckets_by_time->{$bucket}{total_packets} += $flow->{packets};
-
-    }
+    $buckets_by_time = _buildBuckets( $internal_flows, $bucket_size, $buckets_by_time, "internal" );
+    $buckets_by_time = _buildBuckets( $ingress_flows,  $bucket_size, $buckets_by_time, "ingress" );
+    $buckets_by_time = _buildBuckets( $egress_flows,   $bucket_size, $buckets_by_time, "egress" );
 
     # build our return list
     foreach my $bucket_record ( sort { $a <=> $b } keys %$buckets_by_time )
@@ -453,6 +541,70 @@ sub getSumBucketsForTimeRange
     }
 
     return $ret_list;
+}
+
+sub getSumBucketsForTalkerPairForLast
+{
+    my $self = shift;
+    my ( $ip_a, $ip_b, $bucket_size, $duration ) = @_;
+
+    return $self->getSumBucketsForTalkerPair( $ip_a, $ip_b, $bucket_size * 60, time - ( $duration * 60 ), time );
+
+}
+
+#
+# Returns an array of summed flow buckets from start_time to end_time using bucketsize minute
+# sized aggregatio buckets.
+#
+#  {
+#   'internal_flows' => 55,
+#   'internal_bytes' => 30570,
+#   'total_packets' => 783,
+#   'total_bytes' => 93701,
+#   'total_flows' => 156,
+#   'egress_bytes' => 34452,
+#   'egress_flows' => 64,
+#   'ingress_flows' => 37,
+#   'internal_packets' => 180,
+#   'ingress_bytes' => 28679,
+#   'egress_packets' => 360,
+#   'bucket_time' => '1356273960',
+#   'ingress_packets' => 243
+# },
+sub getSumBucketsForTalkerPair
+{
+    my $self = shift();
+    my ( $ip_a, $ip_b, $bucket_size, $start_time, $end_time ) = @_;
+
+    my $ret_list;
+    my $buckets_by_time;
+    my $ingress_flows;
+    my $egress_flows;
+    my $logger = get_logger();
+
+    # List of fields we want in the final hash
+    my $field_list = [
+                       'total_packets', 'total_bytes',   'total_flows',   'egress_bytes',
+                       'egress_flows',  'ingress_flows', 'ingress_bytes', 'egress_packets',
+                       'ingress_packets'
+    ];
+
+    $buckets_by_time = _buildTimeBucketHash( $bucket_size, $start_time, $end_time, $field_list );
+
+    $ingress_flows = $self->getIngressTalkerFlowsInTimeRange( $ip_a, $ip_b, $start_time, $end_time );
+    $egress_flows = $self->getEgressTalkerFlowsInTimeRange( $ip_a, $ip_b, $start_time, $end_time );
+
+    $buckets_by_time = _buildBuckets( $ingress_flows, $bucket_size, $buckets_by_time, "ingress" );
+    $buckets_by_time = _buildBuckets( $egress_flows,  $bucket_size, $buckets_by_time, "egress" );
+
+    # build our return list
+    foreach my $bucket_record ( sort { $a <=> $b } keys %$buckets_by_time )
+    {
+        push @$ret_list, $buckets_by_time->{$bucket_record};
+    }
+
+    return $ret_list;
+
 }
 
 #
@@ -539,7 +691,7 @@ sub _initDB
         }
         else
         {
-            $logger->logconfess( "_initDB failed: $dbfile" . $DBI::errstr );
+            $logger->logconfess("_initDB failed: $dbfile");
         }
     }
 }
@@ -665,6 +817,59 @@ sub _calcBucketTime
     my ( $time, $bucket_size ) = @_;
 
     return int( $time - ( int($time) % $bucket_size ) );
+}
+
+#
+# Helper for the getSumBucket routines
+#
+# Add flows from $flow to $sum_struct
+# summarizing flows into $bucket_size buckets
+# prefix the hash key names with $name
+#
+#
+# This lets us build a single datastructure with aligned
+# buckets that contains multiple types of data (ingress/egress/etc)
+#
+# If $name isn't passed just use flows/bytes/packets
+#
+# I'm not a huge fan of using variable hashref names like this.
+# I didn't hate it enough to refactor the entire chain.
+#
+#
+sub _buildBuckets
+{
+    my ( $flows, $bucket_size, $sum_struct, $name ) = @_;
+    my $logger = get_logger();
+    my $ret_struct;
+
+    if ( !defined($sum_struct) )
+    {
+        $logger->logconfess("sum_struct undefined in _buildBuckets");
+    }
+
+    if ( !defined($bucket_size) || $bucket_size <= 0 )
+    {
+        $logger->logconfess("Invalid bucket_size in _buildBuckets");
+    }
+
+    # append _ to the name if not already there
+    $name = $name . "_" if ( $name !~ /_$/ );
+
+    foreach my $flow (@$flows)
+    {
+        my $bucket = _calcBucketTime( $flow->{fl_time}, $bucket_size );
+
+        $sum_struct->{$bucket}{ $name . "flows" }++;
+        $sum_struct->{$bucket}{ $name . "bytes" }   += $flow->{bytes};
+        $sum_struct->{$bucket}{ $name . "packets" } += $flow->{packets};
+
+        # Update the global counters
+        $sum_struct->{$bucket}{total_flows}++;
+        $sum_struct->{$bucket}{total_bytes}   += $flow->{bytes};
+        $sum_struct->{$bucket}{total_packets} += $flow->{packets};
+    }
+
+    return $sum_struct;
 }
 
 #

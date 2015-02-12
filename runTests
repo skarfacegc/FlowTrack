@@ -1,10 +1,12 @@
 #!/bin/sh
 
 if [ -e ~/perl5/perlbrew/etc/bashrc ]
-then
+    then
     source ~/perl5/perlbrew/etc/bashrc
 fi
 
-cover --delete 
-PERL5OPT=-MDevel::Cover prove --verbose
-cover
+if [ -z "$JENKINS_HOME" ]; then
+    make cover
+else
+    make jenkins
+fi

@@ -191,7 +191,7 @@ sub startWebserver
     my $daemon = Mojo::Server::Daemon->new( listen => [ 'http://*:' . $config->{web_port} ] );
     my $app    = FT::FlowTrackWeb->new();
 
-    $app->secret('3305CA4A-DE4D-4F34-9A38-F17E0A656A25');
+    $app->secrets(['3305CA4A-DE4D-4F34-9A38-F17E0A656A25']);
     $daemon->app( FT::FlowTrackWeb->new() );
     $daemon->run();
 

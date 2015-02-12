@@ -4,9 +4,12 @@
 */*~
 TAGS
 *.sqlite
+.tag*
 *sublime-workspace
 portlist.xml
 Profiling/
 Data/
 .perlcriticrc
 cover_db/*
+TEST_FT*
+test_results.xml
