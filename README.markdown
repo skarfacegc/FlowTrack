@@ -113,6 +113,9 @@ Release Notes
 
 - Single table view of recent flows (no graphs etc)
 
+0.1
+- Added per host graphs (graphs for each pair of talkers)
+
 
 Libraries Used
 -------------------------
