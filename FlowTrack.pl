@@ -26,6 +26,7 @@ use English;
 use Carp;
 use Getopt::Long;
 use Data::Dumper;
+use Time::HiRes qw ( gettimeofday tv_interval);
 
 use FT::Configuration;
 use FT::FlowCollector;
@@ -191,7 +192,7 @@ sub startWebserver
     my $daemon = Mojo::Server::Daemon->new( listen => [ 'http://*:' . $config->{web_port} ] );
     my $app    = FT::FlowTrackWeb->new();
 
-    $app->secrets(['3305CA4A-DE4D-4F34-9A38-F17E0A656A25']);
+    $app->secrets( ['3305CA4A-DE4D-4F34-9A38-F17E0A656A25'] );
     $daemon->app( FT::FlowTrackWeb->new() );
     $daemon->run();
 
@@ -206,8 +207,8 @@ sub startWebserver
 # in time.
 sub runReports
 {
-    my $logger = get_logger();
-    my $config = FT::Configuration::getConf();
+    my $logger  = get_logger();
+    my $config  = FT::Configuration::getConf();
     my $reports = FT::Reporting->new($config);
 
     while (1)
@@ -216,7 +217,10 @@ sub runReports
         sleep( ( $config->{reporting_interval} * 60 ) - ( time % ( $config->{reporting_interval} * 60 ) ) );
 
         $logger->info('Running report');
+
+        my $start_time = [gettimeofday];
         $reports->runReports();
+        $logger->info( 'Reporting took: ' . tv_interval($start_time) );
 
         sleep( $config->{reporting_interval} * 60 );
     }
@@ -234,14 +238,14 @@ sub savePIDFile
     if ( -w $config->{pid_files} )
     {
         open( my $fh, ">", $config->{pid_files} . "/$process.pid" )
-          || $logger->logconfess("Couldn't open " . $config->{pid_files} . "/$process.pid: $!");
+          || $logger->logconfess( "Couldn't open " . $config->{pid_files} . "/$process.pid: $!" );
         print $fh "$pid\n";
         close($fh);
 
     }
     else
     {
-        $logger->logconfess($config->{pid_files} . " is either missing or not writable");
+        $logger->logconfess( $config->{pid_files} . " is either missing or not writable" );
     }
 
     return;
