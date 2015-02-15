@@ -155,6 +155,8 @@ Planned Roadmap
     - Seperate out 3rd party javascript libraries
     - Link Pair grid items to table view
 - **Future**
+    - Look into jqPlot http://www.jqplot.com/
+        - http://stackoverflow.com/questions/19088326/jqplot-y-axis-value-as-kb-mb-tb-pb
     - Per host detail page
     - UI Driven time range selection
     - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX 
