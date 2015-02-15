@@ -152,7 +152,7 @@ Planned Roadmap
     -  Cleanup graph sorting (the bit that picks which of the small graphs to display)
         -  Make graph duration configurable
         -  Scoring should pick pairs with the most recent large amount of data in the graph duration time range
-    - ~~ #14 Seperate out 3rd party javascript libraries~~
+    - ~~Seperate out 3rd party javascript libraries issue #14~~
     - Link Pair grid items to table view
 - **Future**
     - Look into jqPlot http://www.jqplot.com/
