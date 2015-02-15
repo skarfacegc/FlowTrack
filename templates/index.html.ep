@@ -6,11 +6,11 @@
             FlowTrack
         </title>
 
-        <script type="text/javascript" charset="utf8" src="/js/jquery-1.8.1.min.js"> </script>
-        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.min.js"> </script>
-        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.time.min.js"> </script>
-        <script type="text/javascript" charset="utf8" src="/js/flot/jquery.flot.resize.min.js"> </script>
-        <script type="text/javascript" charset="utf8" src="/js/jquery.sparkline.min.js"></script>
+        <script type="text/javascript" charset="utf8" src="/js/3rd-party/jquery-1.8.1.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/3rd-party/flot/jquery.flot.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/3rd-party/flot/jquery.flot.time.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/3rd-party/flot/jquery.flot.resize.min.js"> </script>
+        <script type="text/javascript" charset="utf8" src="/js/3rd-party/jquery.sparkline.min.js"></script>
         <script type="text/javascript" charset="utf8" src="/js/graphs.js"> </script>
 
         <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
