@@ -142,12 +142,17 @@ Planned Roadmap
     - ~~Check for dead procs~~
     - ~~Docs~~
     - ~~Cleanup dead files~~
-- **Release 0.0.2**
+- **Release 0.1**
     - ~~Active Talker Grid~~
     - ~~DNS Resolution~~
     - ~~grid change indicators~~
     - ~~Main Ingress/Egress Graph~~
-    - Active Talker Graphs
+    - ~~Active Talker Graphs~~
+-  ** Release 0.2**
+    -  Cleanup graph sorting (the bit that picks which of the small graphs to display)
+        -  Make graph duration configurable
+        -  Scoring should pick pairs with the most recent large amount of data in the graph duration time range
+    - Seperate out 3rd party javascript libraries
     - Link Pair grid items to table view
 - **Future**
     - Per host detail page
@@ -155,7 +160,11 @@ Planned Roadmap
     - IPFIX support  (Net::Flow supports it, I just don't have an easy IPFIX 
       source.  Gonna look at Yaf at some pt)
     - HTTP Auth
-    - Refactor config loading (not happy with the current solution)
+    - Refactoring
+        - Refactor config loading (not happy with the current solution)
+        - Refactor log4perl object loading (possibly make part of main object)
+    - improve unit tests
+    - expand unit test coverage (espeically around Reporting.pm)
 
 
 
