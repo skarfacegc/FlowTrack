@@ -2,6 +2,10 @@
 
 [![Build Status](https://travis-ci.org/skarfacegc/FlowTrack.svg?branch=feature%2FgridGraph)](https://travis-ci.org/skarfacegc/FlowTrack)
 
+*Note: the command line option for config file location doesn't entirely work, parts of the software still assume ./flowTrack.conf  This is tracked by [issue #21](/../../issues/21)*
+
+
+
 About
 -----
 FlowTrack is designed to listen for and log netflow (v5) traffic.  My goal with it is to make installation as easy as
