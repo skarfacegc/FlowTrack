@@ -1,3 +1,6 @@
+Largely leaving this alone at this point.  If there's interest I'll continue to update.  Moving efforts to [FlowTrack2](https://github.com/skarfacegc/FlowTrack2)  
+
+
 ![Picture](http://flowtrack.info/images/screenshot.png)
 
 [![Build Status](https://travis-ci.org/skarfacegc/FlowTrack.svg?branch=feature%2FgridGraph)](https://travis-ci.org/skarfacegc/FlowTrack)
