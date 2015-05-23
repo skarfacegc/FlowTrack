@@ -1,7 +1,3 @@
-branches:
-    only:
-        - feature/gridGraph
-
 language: perl
 perl:
     - "5.16"
